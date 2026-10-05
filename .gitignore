@@ -1,0 +1,22 @@
+# Obsidian vault settings
+irontion_docs/.obsidian/
+
+# Screenshots
+irontion_docs/screenshots/
+screenshots/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Node
+node_modules/
+dist/
+.svelte-kit/
+*.log
+
+# Rust / Tauri
+target/

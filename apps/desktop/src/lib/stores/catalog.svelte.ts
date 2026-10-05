@@ -1,0 +1,117 @@
+import { getBackend } from "$lib/api/backend";
+import type { Activity, ActivityPatch, NewActivity, Tag, TagInput } from "$lib/api/types";
+import { buildTree, effectiveColor, effectiveTagIds, flatten, indexById, isAssignable, pathOf } from "$lib/domain/tree";
+
+/**
+ * Activities and tags: the user's vocabulary, shared by every page.
+ * Actions write through the backend, then reload so the UI shows exactly what was saved.
+ * Errors propagate to the caller (forms show them inline).
+ */
+class CatalogStore {
+  activities = $state<Activity[]>([]);
+  tags = $state<Tag[]>([]);
+  loaded = $state(false);
+  /** False in the browser preview, where nothing is saved. */
+  persistent = $state(true);
+  /** Bumped after every change, so reports know to refetch. */
+  version = $state(0);
+
+  byId = $derived(indexById(this.activities));
+  tagById = $derived(new Map(this.tags.map((t) => [t.id, t])));
+  tree = $derived(buildTree(this.activities));
+  /** Activities that can fill blocks, in tree order. */
+  leafIds = $derived(
+    flatten(this.tree)
+      .filter((n) => n.children.length === 0)
+      .map((n) => n.activity.id),
+  );
+  /** Archived activities whose parent is not archived: the roots shown in the archive list. */
+  archivedRoots = $derived(
+    this.activities.filter((a) => a.archived && (a.parentId === null || !this.byId.get(a.parentId)?.archived)),
+  );
+
+  private loading: Promise<void> | undefined;
+
+  /** Load once; later calls reuse the same request. */
+  ensureLoaded(): Promise<void> {
+    this.loading ??= this.reload();
+    return this.loading;
+  }
+
+  colorOf(id: number): string {
+    return effectiveColor(id, this.byId);
+  }
+
+  tagsOf(id: number): Set<number> {
+    return effectiveTagIds(id, this.byId);
+  }
+
+  /** "Study / Math homework" */
+  labelOf(id: number): string {
+    return pathOf(id, this.byId)
+      .map((a) => a.name)
+      .join(" / ");
+  }
+
+  isAssignable(id: number): boolean {
+    return isAssignable(id, this.activities);
+  }
+
+  async createActivity(input: NewActivity): Promise<Activity> {
+    const created = await (await getBackend()).createActivity(input);
+    await this.reload();
+    return created;
+  }
+
+  async updateActivity(id: number, patch: ActivityPatch) {
+    await (await getBackend()).updateActivity(id, patch);
+    await this.reload();
+  }
+
+  async archiveActivity(id: number) {
+    await (await getBackend()).archiveActivity(id);
+    await this.reload();
+  }
+
+  async restoreActivity(id: number) {
+    await (await getBackend()).restoreActivity(id);
+    await this.reload();
+  }
+
+  async deleteActivity(id: number) {
+    await (await getBackend()).deleteActivity(id);
+    await this.reload();
+  }
+
+  async blockCount(id: number): Promise<number> {
+    return (await getBackend()).activityBlockCount(id);
+  }
+
+  async createTag(input: TagInput): Promise<Tag> {
+    const tag = await (await getBackend()).createTag(input);
+    await this.reload();
+    return tag;
+  }
+
+  async updateTag(id: number, input: TagInput) {
+    await (await getBackend()).updateTag(id, input);
+    await this.reload();
+  }
+
+  async deleteTag(id: number) {
+    await (await getBackend()).deleteTag(id);
+    await this.reload();
+  }
+
+  private async reload() {
+    const backend = await getBackend();
+    const [activities, tags] = await Promise.all([backend.listActivities(), backend.listTags()]);
+    this.activities = activities;
+    this.tags = tags;
+    this.persistent = backend.persistent;
+    this.loaded = true;
+    this.version++;
+  }
+}
+
+export const catalog = new CatalogStore();

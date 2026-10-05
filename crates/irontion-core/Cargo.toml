@@ -1,0 +1,11 @@
+[package]
+name = "irontion-core"
+version = "0.1.0"
+edition = "2024"
+description = "Irontion business logic and SQLite storage, shared by every app"
+publish = false
+
+[dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.21"
