@@ -1,5 +1,7 @@
 <script lang="ts">
+  import X from "@lucide/svelte/icons/x";
   import type { Snippet } from "svelte";
+  import { t } from "$lib/i18n/index.svelte";
 
   let {
     open = $bindable(true),
@@ -28,6 +30,10 @@
     lg: "max-w-[min(46rem,calc(100vw-1.5rem))]",
   };
 
+  /** Dialogs can nest (a date picker inside the note editor), so each needs its own title id. */
+  const uid = $props.id();
+  const titleId = `modal-title-${uid}`;
+
   let dialog: HTMLDialogElement;
 
   // The native <dialog> gives focus trapping, Escape to close, and focus return.
@@ -51,13 +57,24 @@
   class="modal m-auto max-h-[calc(100dvh-1.5rem)] w-full overflow-y-auto rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl {WIDTHS[
     width
   ]}"
-  aria-labelledby="modal-title"
+  aria-labelledby={titleId}
 >
   {#if open}
     <div class="px-6 pt-5 pb-5">
       <div class="mb-4 flex items-center justify-between gap-4">
-        <h2 id="modal-title" class="text-lg font-semibold tracking-tight">{title}</h2>
-        {#if actions}{@render actions()}{/if}
+        <h2 id={titleId} class="text-lg font-semibold tracking-tight">{title}</h2>
+        <div class="flex items-center gap-2">
+          {#if actions}{@render actions()}{/if}
+          <button
+            type="button"
+            class="-mr-2 grid size-8 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-ink"
+            aria-label={t("common.close")}
+            title={t("common.close")}
+            onclick={() => (open = false)}
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
       </div>
       {@render children()}
     </div>

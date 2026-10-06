@@ -115,6 +115,8 @@ pub enum DeleteScope {
     BlocksInRange { from: String, to: String },
     /// Every activity, archived ones too, and with them all their time blocks.
     AllActivities,
+    /// Every note. Activities and time blocks never delete notes; tags stay.
+    AllNotes,
 }
 
 /// How much a delete removes (or would remove).
@@ -123,4 +125,100 @@ pub enum DeleteScope {
 pub struct DataCounts {
     pub blocks: i64,
     pub activities: i64,
+    pub notes: i64,
+}
+
+pub type NoteId = i64;
+
+/// A short sticky note (F006). Every note belongs to exactly one day (`date`), which is where it
+/// shows on the Calendar (F007); one day can have many notes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Note {
+    pub id: NoteId,
+    pub text: String,
+    /// `YYYY-MM-DD`, never empty.
+    pub date: String,
+    /// One of `NOTE_COLORS`.
+    pub color: String,
+    /// Pinned notes come first on the board.
+    pub pinned: bool,
+    pub tag_ids: Vec<TagId>,
+    /// When to remind the user (UTC, ISO 8601), if at all.
+    pub remind_at: Option<String>,
+    /// When the reminder was shown; `None` while it is still to come.
+    pub reminded_at: Option<String>,
+    /// UTC, ISO 8601.
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+fn default_color() -> String {
+    crate::NOTE_COLORS[0].to_owned()
+}
+
+/// A new note. `tags` are tag names: an existing tag (ignoring case) is reused, any other name
+/// becomes a new tag in the same transaction. `#tags` still in `text` are taken out and added.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewNote {
+    pub date: String,
+    pub text: String,
+    #[serde(default = "default_color")]
+    pub color: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+/// An edit of a note. There is no date here on purpose: only `notes::move_note` changes it.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteEdit {
+    pub text: String,
+    #[serde(default = "default_color")]
+    pub color: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+/// Which days to list notes from.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum NoteQuery {
+    All,
+    /// Notes on one day (`YYYY-MM-DD`).
+    Date {
+        date: String,
+    },
+    /// Notes from `from` to `to`, both days included.
+    Range {
+        from: String,
+        to: String,
+    },
+}
+
+/// Narrows a note list. Every field is optional; they combine.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NoteFilter {
+    pub tag_id: Option<TagId>,
+    /// Every word must appear in the text or in a tag name, in any order, ignoring case.
+    pub keyword: Option<String>,
+}
+
+/// One day's notes, for the Calendar's indicators. Days with none are left out.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteDayCount {
+    pub date: String,
+    pub notes: i64,
+}
+
+/// How many activities and notes use one tag (F002 tags panel).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TagUsage {
+    pub tag_id: TagId,
+    pub activities: i64,
+    pub notes: i64,
 }

@@ -2,7 +2,7 @@
 
 use rusqlite::{Connection, ErrorCode, OptionalExtension, params};
 
-use crate::model::{Tag, TagId, TagInput};
+use crate::model::{Tag, TagId, TagInput, TagUsage};
 use crate::{Error, Result, validate};
 
 pub fn list(conn: &Connection) -> Result<Vec<Tag>> {
@@ -45,7 +45,25 @@ pub fn update(conn: &Connection, id: TagId, input: TagInput) -> Result<Tag> {
     Ok(Tag { id, name, color })
 }
 
-/// Delete a tag and remove it from every activity.
+/// How many activities and notes use each tag (F002 tags panel), in the order of `list`.
+pub fn usage(conn: &Connection) -> Result<Vec<TagUsage>> {
+    let mut stmt = conn.prepare(
+        "SELECT id,
+                (SELECT COUNT(*) FROM activity_tags WHERE tag_id = tags.id),
+                (SELECT COUNT(*) FROM note_tags WHERE tag_id = tags.id)
+         FROM tags ORDER BY name COLLATE NOCASE",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        Ok(TagUsage {
+            tag_id: r.get(0)?,
+            activities: r.get(1)?,
+            notes: r.get(2)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// Delete a tag and remove it from every activity and note. The activities and notes stay.
 pub fn delete(conn: &Connection, id: TagId) -> Result<()> {
     let exists = conn
         .query_row("SELECT 1 FROM tags WHERE id = ?1", [id], |_| Ok(()))
@@ -81,6 +99,37 @@ mod tests {
         let conn = open_in_memory().unwrap();
         create(&conn, input("deep-work")).unwrap();
         assert!(matches!(create(&conn, input("Deep-Work")), Err(Error::DuplicateTag)));
+    }
+
+    #[test]
+    fn usage_counts_activities_and_notes() {
+        let mut conn = open_in_memory().unwrap();
+        let work = create(&conn, input("work")).unwrap();
+        create(&conn, input("idle")).unwrap();
+        crate::activities::create(
+            &mut conn,
+            crate::model::NewActivity {
+                parent_id: None,
+                name: "Job".into(),
+                color: Some("#123456".into()),
+                tag_ids: vec![work.id],
+            },
+        )
+        .unwrap();
+        for text in ["a #work", "b #work"] {
+            crate::notes::create_note(
+                &mut conn,
+                crate::model::NewNote {
+                    date: "2026-10-06".into(),
+                    text: text.into(),
+                    color: "yellow".into(),
+                    tags: vec![],
+                },
+            )
+            .unwrap();
+        }
+        let got: Vec<(i64, i64)> = usage(&conn).unwrap().iter().map(|u| (u.activities, u.notes)).collect();
+        assert_eq!(got, [(0, 0), (1, 2)], "idle, then work (by name)");
     }
 
     #[test]

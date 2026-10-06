@@ -22,6 +22,23 @@
   --accent-soft: rgba(42, 120, 214, 0.12);
   --accent-ink: #ffffff;
   --danger: #d03b3b;
+  /* Sticky note paper (F006). A note picks one of these (`NOTE_COLORS`); its sheet sets --note to it.
+     The color is the top band and a light tint of the paper. */
+  --note-yellow: #eda100;
+  --note-orange: #eb6834;
+  --note-red: #e34948;
+  --note-pink: #e87ba4;
+  --note-purple: #8a6ae0;
+  --note-blue: #2a78d6;
+  --note-teal: #2f8fa6;
+  --note-green: #1baf7a;
+  --note-gray: #898781;
+  --note: var(--note-yellow);
+  --paper: #fffaf0;
+  --paper-rule: rgba(74, 144, 164, 0.32);
+  --paper-margin: rgba(227, 73, 72, 0.55);
+  --paper-tape: rgba(120, 170, 225, 0.5);
+  --paper-shadow: 0 1px 1px rgba(11, 11, 11, 0.06), 0 10px 18px -8px rgba(11, 11, 11, 0.28);
   --cell-ring: rgba(11, 11, 11, 0.12);
   --cell-radius: 0.75rem;
   --shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 4px 16px rgba(11, 11, 11, 0.04);
@@ -33,6 +50,89 @@
 /* Preference: blocks as circles instead of rounded squares. */
 :root[data-cell-shape="circle"] {
   --cell-radius: 50%;
+}
+
+/*
+  Sticky-note paper (F006): a flat, square sheet in the note color (--note), with a colored
+  band along the top, two pieces of tape on the corners and a soft shadow underneath.
+  "Lined" paper (a setting) adds ruled lines and a red margin line to `.paper-ruled`: the whole
+  card on the Notes page, or only the writing area of the editor. Text sits on the rules because
+  the rules repeat every --paper-line, the same as the text's line height, starting at --ruled-top
+  (where the text starts).
+*/
+:root {
+  --paper-line: 1.625rem;
+  --paper-top: 1.75rem;
+}
+@layer components {
+  .paper {
+    position: relative;
+    border-radius: 0;
+    background-color: color-mix(in srgb, var(--note) 16%, var(--paper));
+    /* The band is an inset shadow, so the background stays free for the rules. */
+    box-shadow:
+      inset 0 6px 0 var(--note),
+      var(--paper-shadow);
+  }
+  .paper-ruled {
+    --ruled-top: 0px;
+  }
+  /* A sheet: room at the top for the band and the tape. */
+  .paper-sheet {
+    --ruled-top: var(--paper-top);
+    padding: var(--paper-top) 1.25rem 1.25rem;
+  }
+  /* A sticky note is about as tall as it is wide: six lines of room even for a short note. */
+  .paper-note {
+    min-height: calc(var(--paper-top) + 6 * var(--paper-line) + 1.25rem);
+  }
+  /* Two strips of tape across the top corners. */
+  .paper-tape::before,
+  .paper-tape::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 2.75rem;
+    height: 1rem;
+    background: var(--paper-tape);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+    pointer-events: none;
+  }
+  .paper-tape::before {
+    left: -0.5rem;
+    transform: rotate(-35deg);
+  }
+  .paper-tape::after {
+    right: -0.5rem;
+    transform: rotate(35deg);
+  }
+}
+/* `data-sheet` pins one sheet to a style whatever the setting is (the samples in Settings). */
+:root[data-note-paper="lined"] .paper-ruled:not([data-sheet]),
+.paper-ruled[data-sheet="lined"] {
+  padding-left: 3rem;
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 2.25rem,
+      var(--paper-margin) 2.25rem,
+      var(--paper-margin) calc(2.25rem + 1.5px),
+      transparent calc(2.25rem + 1.5px)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--paper-line) - 1px),
+      var(--paper-rule) calc(var(--paper-line) - 1px),
+      var(--paper-rule) var(--paper-line)
+    );
+  background-size:
+    100% 100%,
+    100% var(--paper-line);
+  background-repeat: no-repeat, repeat;
+  background-position:
+    0 0,
+    0 var(--ruled-top);
 }
 
 /* CJK languages share code points but not glyph shapes: put the right regional font first. */
@@ -61,6 +161,21 @@
   --accent-soft: rgba(57, 135, 229, 0.16);
   --accent-ink: #ffffff;
   --danger: #e66767;
+  --note-yellow: #f0b43a;
+  --note-orange: #f08a5c;
+  --note-red: #ee6b6a;
+  --note-pink: #ee94b8;
+  --note-purple: #a893f0;
+  --note-blue: #4f9bf0;
+  --note-teal: #4fb3c9;
+  --note-green: #3cc995;
+  --note-gray: #a3a19a;
+  --note: var(--note-yellow);
+  --paper: #2b2a26;
+  --paper-rule: rgba(150, 190, 205, 0.2);
+  --paper-margin: rgba(238, 107, 106, 0.45);
+  --paper-tape: rgba(170, 200, 235, 0.3);
+  --paper-shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 12px 20px -8px rgba(0, 0, 0, 0.65);
   --cell-ring: rgba(255, 255, 255, 0.14);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.25);
 }
@@ -78,6 +193,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-note: var(--note);
   --shadow-card: var(--shadow);
   --font-sans: var(--font-ui);
 }
@@ -139,6 +255,10 @@ html.theme-switching * {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+/* Writing on the paper shows the caret, not a box around the sheet's lines. */
+.paper textarea:focus-visible {
+  outline: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

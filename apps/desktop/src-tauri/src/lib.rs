@@ -39,12 +39,25 @@ fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) -> bool + Send + Sync + 'static 
         commands::create_tag,
         commands::update_tag,
         commands::delete_tag,
+        commands::tag_usage,
         commands::get_day,
         commands::apply_day_changes,
         commands::activity_totals,
         commands::daily_totals,
         commands::count_data,
         commands::delete_data,
+        commands::list_notes,
+        commands::create_note,
+        commands::update_note,
+        commands::move_note,
+        commands::delete_note,
+        commands::restore_note,
+        commands::note_month_counts,
+        commands::pin_note,
+        commands::reorder_notes,
+        commands::set_note_reminder,
+        commands::due_reminders,
+        commands::mark_note_reminded,
     ]
 }
 
@@ -281,7 +294,7 @@ mod tests {
         let one_day = json!({ "kind": "blocksInRange", "from": "2026-10-04", "to": "2026-10-04" });
         assert_eq!(
             call(&w, "count_data", json!({ "scope": one_day })).unwrap(),
-            json!({ "blocks": 3, "activities": 0 })
+            json!({ "blocks": 3, "activities": 0, "notes": 0 })
         );
         assert_eq!(
             call(
@@ -296,7 +309,7 @@ mod tests {
         // One day goes; the other stays.
         assert_eq!(
             call(&w, "delete_data", json!({ "scope": one_day })).unwrap(),
-            json!({ "blocks": 3, "activities": 0 })
+            json!({ "blocks": 3, "activities": 0, "notes": 0 })
         );
         assert_eq!(
             call(
@@ -327,12 +340,192 @@ mod tests {
         );
         assert_eq!(
             call(&w, "delete_data", json!({ "scope": { "kind": "allActivities" } })).unwrap(),
-            json!({ "blocks": 0, "activities": 1 })
+            json!({ "blocks": 0, "activities": 1, "notes": 0 })
         );
         assert!(call(&w, "list_activities", json!({}))
             .unwrap()
             .as_array()
             .unwrap()
             .is_empty());
+    }
+    #[test]
+    fn notes_are_written_moved_listed_counted_deleted_and_restored_over_ipc() {
+        let (_app, w) = app();
+        let note = |date: &str, text: &str| json!({ "input": { "date": date, "text": text, "tags": [] } });
+        let texts = |notes: Value| -> Vec<String> {
+            notes
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|n| n["text"].as_str().unwrap().to_owned())
+                .collect()
+        };
+
+        // A #tag leaves the text and becomes a tag, created in the same transaction.
+        let created = call(&w, "create_note", note("2026-10-06", "  Study two hours #school ")).unwrap();
+        assert_eq!(created["text"], json!("Study two hours"));
+        assert_eq!(created["date"], json!("2026-10-06"));
+        assert!(created.get("template").is_none(), "notes have no template");
+        assert!(created["createdAt"].is_string() && created["updatedAt"].is_string());
+        let school = call(&w, "list_tags", json!({})).unwrap()[0].clone();
+        assert_eq!(school["name"], json!("school"));
+        assert_eq!(created["tagIds"], json!([school["id"]]));
+        let id = created["id"].clone();
+
+        call(&w, "create_note", note("2026-10-30", "Hand in the thesis #School")).unwrap();
+        call(&w, "create_note", note("2026-10-05", "Ran 5 km")).unwrap();
+
+        let all = call(&w, "list_notes", json!({ "query": { "kind": "all" } })).unwrap();
+        assert_eq!(
+            texts(all),
+            ["Ran 5 km", "Hand in the thesis", "Study two hours"],
+            "board order: the newest note first"
+        );
+        let filtered = call(
+            &w,
+            "list_notes",
+            json!({ "query": { "kind": "range", "from": "2026-10-01", "to": "2026-10-31" },
+                    "filter": { "tagId": school["id"], "keyword": "THESIS" } }),
+        )
+        .unwrap();
+        assert_eq!(texts(filtered), ["Hand in the thesis"]);
+        assert_eq!(
+            call(&w, "tag_usage", json!({})).unwrap(),
+            json!([{ "tagId": school["id"], "activities": 0, "notes": 2 }])
+        );
+
+        assert_eq!(
+            call(
+                &w,
+                "note_month_counts",
+                json!({ "from": "2026-10-01", "to": "2026-10-31" })
+            )
+            .unwrap(),
+            json!([
+                { "date": "2026-10-05", "notes": 1 },
+                { "date": "2026-10-06", "notes": 1 },
+                { "date": "2026-10-30", "notes": 1 }
+            ])
+        );
+
+        // An edit never carries a date; moving is its own command.
+        let edit = json!({ "id": id, "edit": { "text": "Studied", "tags": [] } });
+        let edited = call(&w, "update_note", edit).unwrap();
+        assert_eq!(
+            (edited["date"].clone(), edited["tagIds"].clone()),
+            (json!("2026-10-06"), json!([]))
+        );
+        let moved = call(&w, "move_note", json!({ "id": id, "date": "2026-10-07" })).unwrap();
+        assert_eq!(moved["date"], json!("2026-10-07"));
+        assert_eq!(moved["createdAt"], created["createdAt"]);
+
+        // Delete hands the note back, and restore puts it back for Undo.
+        let deleted = call(&w, "delete_note", json!({ "id": id })).unwrap();
+        assert_eq!(deleted, moved);
+        assert_eq!(call(&w, "restore_note", json!({ "note": deleted })).unwrap(), moved);
+
+        let kind = |cmd: &str, args: Value| call(&w, cmd, args).unwrap_err()["kind"].clone();
+        assert_eq!(
+            kind("create_note", note("2026-10-06", &"a".repeat(201))),
+            json!("noteTooLong")
+        );
+        assert_eq!(
+            kind("create_note", note("2026-10-06", " #only-a-tag ")),
+            json!("noteEmpty")
+        );
+        assert_eq!(kind("create_note", note("", "x")), json!("invalidDate"));
+        assert_eq!(
+            kind("create_note", note("2026-10-06", "x #a #b #c #d #e #f")),
+            json!("noteTooManyTags")
+        );
+        assert_eq!(kind("move_note", json!({ "id": id, "date": "" })), json!("invalidDate"));
+        assert_eq!(kind("delete_note", json!({ "id": 999 })), json!("notFound"));
+
+        // Danger zone: counts are exact, other scopes leave notes alone, and tags stay.
+        assert_eq!(
+            call(&w, "count_data", json!({ "scope": { "kind": "allNotes" } })).unwrap(),
+            json!({ "blocks": 0, "activities": 0, "notes": 3 })
+        );
+        call(&w, "delete_data", json!({ "scope": { "kind": "allActivities" } })).unwrap();
+        assert_eq!(
+            texts(call(&w, "list_notes", json!({ "query": { "kind": "all" } })).unwrap()).len(),
+            3
+        );
+        assert_eq!(
+            call(&w, "delete_data", json!({ "scope": { "kind": "allNotes" } })).unwrap(),
+            json!({ "blocks": 0, "activities": 0, "notes": 3 })
+        );
+        assert!(texts(call(&w, "list_notes", json!({ "query": { "kind": "all" } })).unwrap()).is_empty());
+        assert_eq!(call(&w, "list_tags", json!({})).unwrap().as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn color_pin_order_and_reminders_over_ipc() {
+        let (_app, w) = app();
+        let new = |text: &str, color: &str| json!({ "input": { "date": "2026-10-06", "text": text, "color": color, "tags": [] } });
+        let mut ids = Vec::new();
+        for (text, color) in [("a", "yellow"), ("b", "blue"), ("c", "teal")] {
+            let note = call(&w, "create_note", new(text, color)).unwrap();
+            assert_eq!(note["color"], json!(color));
+            assert_eq!(
+                (note["pinned"].clone(), note["remindAt"].clone()),
+                (json!(false), Value::Null)
+            );
+            ids.push(note["id"].clone());
+        }
+        let order = |w: &WebviewWindow<MockRuntime>| -> Vec<String> {
+            call(w, "list_notes", json!({ "query": { "kind": "all" } }))
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|n| n["text"].as_str().unwrap().to_owned())
+                .collect()
+        };
+        assert_eq!(order(&w), ["c", "b", "a"], "a new note goes first");
+
+        // A color is part of an edit, and must be one of the palette.
+        let edit = json!({ "id": ids[0], "edit": { "text": "a", "color": "pink", "tags": [] } });
+        assert_eq!(call(&w, "update_note", edit).unwrap()["color"], json!("pink"));
+        let bad = json!({ "id": ids[0], "edit": { "text": "a", "color": "neon", "tags": [] } });
+        assert_eq!(call(&w, "update_note", bad).unwrap_err()["kind"], json!("invalidColor"));
+
+        // Pin, then drag into a new order (a whole group at a time).
+        assert_eq!(
+            call(&w, "pin_note", json!({ "id": ids[0], "pinned": true })).unwrap()["pinned"],
+            json!(true)
+        );
+        assert_eq!(order(&w), ["a", "c", "b"]);
+        call(&w, "reorder_notes", json!({ "ids": [ids[1], ids[2]] })).unwrap();
+        assert_eq!(order(&w), ["a", "b", "c"]);
+        assert_eq!(
+            call(&w, "reorder_notes", json!({ "ids": [ids[1], 999] })).unwrap_err()["kind"],
+            json!("notFound")
+        );
+
+        // Reminders: set, due, shown once, cleared.
+        let set = call(
+            &w,
+            "set_note_reminder",
+            json!({ "id": ids[1], "remindAt": "2001-01-01T08:00:00Z" }),
+        )
+        .unwrap();
+        assert_eq!(set["remindAt"], json!("2001-01-01T08:00:00.000Z"));
+        let due = call(&w, "due_reminders", json!({})).unwrap();
+        assert_eq!(due.as_array().unwrap().len(), 1);
+        assert_eq!(due[0]["id"], ids[1]);
+        let shown = call(&w, "mark_note_reminded", json!({ "id": ids[1] })).unwrap();
+        assert!(shown["remindedAt"].is_string());
+        assert!(call(&w, "due_reminders", json!({}))
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .is_empty());
+        assert_eq!(
+            call(&w, "set_note_reminder", json!({ "id": ids[1], "remindAt": "tomorrow" })).unwrap_err()["kind"],
+            json!("invalidReminder")
+        );
+        let cleared = call(&w, "set_note_reminder", json!({ "id": ids[1], "remindAt": null })).unwrap();
+        assert_eq!(cleared["remindAt"], Value::Null);
     }
 }

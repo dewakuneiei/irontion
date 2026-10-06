@@ -10,8 +10,15 @@ import type {
   DeleteScope,
   ErrorKind,
   NewActivity,
+  NewNote,
+  Note,
+  NoteDayCount,
+  NoteEdit,
+  NoteFilter,
+  NoteQuery,
   Tag,
   TagInput,
+  TagUsage,
   TreeNode,
   TreePlanItem,
   TreeReport,
@@ -47,6 +54,32 @@ export interface Backend {
 
   activityTotals(from: string, to: string): Promise<ActivityTotal[]>;
   dailyTotals(from: string, to: string): Promise<DailyTotal[]>;
+
+  /** How many activities and notes use each tag. */
+  tagUsage(): Promise<TagUsage[]>;
+  /** Notes in display order: the latest day first, the newest created first within a day. */
+  listNotes(query: NoteQuery, filter?: NoteFilter): Promise<Note[]>;
+  createNote(input: NewNote): Promise<Note>;
+  /** Text and tags. Never the date: see `moveNote`. */
+  updateNote(id: number, edit: NoteEdit): Promise<Note>;
+  /** Put a note on another day (the Calendar only). */
+  moveNote(id: number, date: string): Promise<Note>;
+  /** Delete one note for good; the deleted note comes back so the UI can offer Undo. */
+  deleteNote(id: number): Promise<Note>;
+  /** Undo a delete: the note comes back with its id, day and times. */
+  restoreNote(note: Note): Promise<Note>;
+  /** Pin or unpin a note; it goes to the top of its new group. Not an edit. */
+  pinNote(id: number, pinned: boolean): Promise<Note>;
+  /** Put these notes in this order (a whole group, pinned or not, as dragged). */
+  reorderNotes(ids: number[]): Promise<void>;
+  /** Set (UTC, ISO 8601) or clear a note's reminder (F008). */
+  setNoteReminder(id: number, remindAt: string | null): Promise<Note>;
+  /** Notes whose reminder time has come and were not shown yet, soonest first. */
+  dueReminders(): Promise<Note[]>;
+  /** Remember that a reminder was shown, so it is not shown again. */
+  markNoteReminded(id: number): Promise<Note>;
+  /** Per day between two dates (both included): the note count. */
+  noteMonthCounts(from: string, to: string): Promise<NoteDayCount[]>;
 
   /** What `deleteData` would remove for this scope. Changes nothing. */
   countData(scope: DeleteScope): Promise<DataCounts>;

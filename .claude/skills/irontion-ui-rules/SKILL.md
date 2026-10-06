@@ -29,6 +29,11 @@ description: UI rules every Irontion page and component must follow - theme toke
 - Empty states tell the user what to do next and offer the button to do it.
 - Errors say what happened and how to fix it. No apologies.
 - No ALL-CAPS labels, no "A · B" meta strings, no arrows appended to buttons.
+- **Don't explain common sense.** No hint or helper text for what the user already knows or what the control already shows: "Or pick a day and time" above a date and time field, "Pick a time in the future." under a disabled Set button. A disabled control, the field itself or its `aria-label` is enough. Add an explanation only when the user asks for one, or when an error says what went wrong and how to fix it.
+
+## Containers
+
+- A container that holds a thing (the note paper's column, a card) holds only that thing. A tool that picks something for it (a color, a reminder time) opens in a `Modal`, never as a panel pushed into the container.
 
 ## Motion
 

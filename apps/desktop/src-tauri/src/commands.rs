@@ -5,10 +5,11 @@ use std::sync::Mutex;
 
 use irontion_core::model::{
     Activity, ActivityId, ActivityPatch, ActivityTotal, DailyTotal, DataCounts, DayChange, DaySlots, DeleteScope,
-    NewActivity, Tag, TagId, TagInput, TreeNode, TreePlanItem, TreeReport,
+    NewActivity, NewNote, Note, NoteDayCount, NoteEdit, NoteFilter, NoteId, NoteQuery, Tag, TagId, TagInput, TagUsage,
+    TreeNode, TreePlanItem, TreeReport,
 };
 use irontion_core::Connection;
-use irontion_core::{activities, activity_tree, blocks, data, summary, tags};
+use irontion_core::{activities, activity_tree, blocks, data, notes, summary, tags};
 use serde::Serialize;
 use tauri::State;
 
@@ -137,4 +138,69 @@ pub async fn count_data(db: State<'_, Db>, scope: DeleteScope) -> CmdResult<Data
 #[tauri::command]
 pub async fn delete_data(db: State<'_, Db>, scope: DeleteScope) -> CmdResult<DataCounts> {
     with_db(&db, |c| data::delete(c, &scope))
+}
+
+#[tauri::command]
+pub async fn tag_usage(db: State<'_, Db>) -> CmdResult<Vec<TagUsage>> {
+    with_db(&db, |c| tags::usage(c))
+}
+
+#[tauri::command]
+pub async fn list_notes(db: State<'_, Db>, query: NoteQuery, filter: Option<NoteFilter>) -> CmdResult<Vec<Note>> {
+    with_db(&db, |c| notes::list(c, &query, &filter.unwrap_or_default()))
+}
+
+#[tauri::command]
+pub async fn create_note(db: State<'_, Db>, input: NewNote) -> CmdResult<Note> {
+    with_db(&db, |c| notes::create_note(c, input))
+}
+
+#[tauri::command]
+pub async fn update_note(db: State<'_, Db>, id: NoteId, edit: NoteEdit) -> CmdResult<Note> {
+    with_db(&db, |c| notes::update_note(c, id, edit))
+}
+
+#[tauri::command]
+pub async fn move_note(db: State<'_, Db>, id: NoteId, date: String) -> CmdResult<Note> {
+    with_db(&db, |c| notes::move_note(c, id, &date))
+}
+
+#[tauri::command]
+pub async fn delete_note(db: State<'_, Db>, id: NoteId) -> CmdResult<Note> {
+    with_db(&db, |c| notes::delete_note(c, id))
+}
+
+#[tauri::command]
+pub async fn restore_note(db: State<'_, Db>, note: Note) -> CmdResult<Note> {
+    with_db(&db, |c| notes::restore_note(c, &note))
+}
+
+#[tauri::command]
+pub async fn note_month_counts(db: State<'_, Db>, from: String, to: String) -> CmdResult<Vec<NoteDayCount>> {
+    with_db(&db, |c| notes::month_counts(c, &from, &to))
+}
+
+#[tauri::command]
+pub async fn pin_note(db: State<'_, Db>, id: NoteId, pinned: bool) -> CmdResult<Note> {
+    with_db(&db, |c| notes::pin_note(c, id, pinned))
+}
+
+#[tauri::command]
+pub async fn reorder_notes(db: State<'_, Db>, ids: Vec<NoteId>) -> CmdResult<()> {
+    with_db(&db, |c| notes::reorder_notes(c, &ids))
+}
+
+#[tauri::command]
+pub async fn set_note_reminder(db: State<'_, Db>, id: NoteId, remind_at: Option<String>) -> CmdResult<Note> {
+    with_db(&db, |c| notes::set_reminder(c, id, remind_at.as_deref()))
+}
+
+#[tauri::command]
+pub async fn due_reminders(db: State<'_, Db>) -> CmdResult<Vec<Note>> {
+    with_db(&db, |c| notes::due_reminders(c))
+}
+
+#[tauri::command]
+pub async fn mark_note_reminded(db: State<'_, Db>, id: NoteId) -> CmdResult<Note> {
+    with_db(&db, |c| notes::mark_reminded(c, id))
 }

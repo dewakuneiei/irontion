@@ -8,11 +8,12 @@
   import { t } from "$lib/i18n/index.svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { day } from "$lib/stores/day.svelte";
+  import { notes } from "$lib/stores/notes.svelte";
   import { notices } from "$lib/stores/notices.svelte";
 
   let { onclose }: { onclose: () => void } = $props();
 
-  type Choice = "range" | "allBlocks" | "allActivities";
+  type Choice = "range" | "allBlocks" | "allActivities" | "allNotes";
 
   // The smallest delete is the default, so a hasty click does the least harm.
   let choice = $state<Choice>("range");
@@ -28,7 +29,7 @@
   const scope = $derived<DeleteScope | null>(
     choice === "range" ? (rangeValid ? { kind: "blocksInRange", from, to } : null) : { kind: choice },
   );
-  const nothing = $derived(counts !== null && counts.blocks === 0 && counts.activities === 0);
+  const nothing = $derived(counts !== null && counts.blocks === 0 && counts.activities === 0 && counts.notes === 0);
   const canDelete = $derived(scope !== null && counts !== null && !nothing && confirmed && !busy);
 
   const options: { value: Choice; label: () => string; hint: () => string }[] = [
@@ -39,6 +40,7 @@
       label: () => t("settings.danger.modal.allActivities"),
       hint: () => t("settings.danger.modal.allActivitiesHint"),
     },
+    { value: "allNotes", label: () => t("settings.danger.modal.allNotes"), hint: () => t("settings.danger.modal.allNotesHint") },
   ];
 
   // Show exactly how much the current choice would remove, and ask again whenever it changes.
@@ -66,6 +68,7 @@
     try {
       await catalog.deleteData(scope);
       await day.open(day.date); // the Blocks page may be showing a day that just changed
+      if (scope.kind === "allNotes") await notes.reload(); // the Notes page and the Calendar share this list
       notices.info(t("settings.danger.done"));
       open = false;
     } catch (err) {
@@ -128,7 +131,12 @@
     {:else if nothing}
       <span class="text-muted">{t("settings.danger.modal.nothing")}</span>
     {:else}
-      <p class="font-medium text-danger">{t("settings.danger.modal.blocksToDelete", { blocks: counts.blocks })}</p>
+      {#if choice !== "allNotes"}
+        <p class="font-medium text-danger">{t("settings.danger.modal.blocksToDelete", { blocks: counts.blocks })}</p>
+      {/if}
+      {#if choice === "allNotes"}
+        <p class="font-medium text-danger">{t("settings.danger.modal.notesToDelete", { notes: counts.notes })}</p>
+      {/if}
       {#if choice === "allActivities"}
         <p class="font-medium text-danger">{t("settings.danger.modal.activitiesToDelete", { activities: counts.activities })}</p>
       {/if}

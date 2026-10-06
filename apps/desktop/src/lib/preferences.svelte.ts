@@ -19,7 +19,12 @@ export const FILL_DIRECTIONS: FillDirection[] = ["right", "left", "up", "down"];
 /** Left to right, the same way the grid reads time. */
 const DEFAULT_FILL_DIRECTION: FillDirection = "right";
 
+/** How a note's paper looks: with ruled lines or plain. */
+export type NotePaper = "lined" | "plain";
+export const NOTE_PAPERS: NotePaper[] = ["lined", "plain"];
+
 const SHAPE_KEY = "irontion.cellShape";
+const PAPER_KEY = "irontion.notePaper";
 const FILL_KEY = "irontion.fillDirection";
 const FILL_ANIMATION_KEY = "irontion.fillAnimation";
 const DATE_FORMAT_KEY = "irontion.dateFormat";
@@ -64,6 +69,8 @@ class PreferencesState {
   weekStart = $state<WeekStart>(parseWeekStart(read(WEEK_START_KEY)));
   timeFormat = $state<TimeFormat>(read(TIME_FORMAT_KEY) === "12h" ? "12h" : DEFAULT_TIME_FORMAT);
 
+  notePaper = $state<NotePaper>(read(PAPER_KEY) === "plain" ? "plain" : "lined");
+
   fillDirection = $state<FillDirection>(savedFillDirection());
 
   /** A gentle water wave on the surface of the filling block. */
@@ -94,6 +101,11 @@ class PreferencesState {
     write(TIME_FORMAT_KEY, format);
   }
 
+  setNotePaper(paper: NotePaper) {
+    this.notePaper = paper;
+    write(PAPER_KEY, paper);
+  }
+
   setCellShape(shape: CellShape) {
     this.cellShape = shape;
     write(SHAPE_KEY, shape);
@@ -118,6 +130,7 @@ class PreferencesState {
     const root = document.documentElement;
     const vars = accentVars(this.accent, theme);
     root.dataset.cellShape = this.cellShape;
+    root.dataset.notePaper = this.notePaper;
     root.style.setProperty("--accent", vars.accent);
     root.style.setProperty("--accent-soft", vars.soft);
     root.style.setProperty("--accent-ink", vars.ink);

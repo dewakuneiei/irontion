@@ -18,11 +18,12 @@ status: in-development
 > - **Languages:** English, Thai, Chinese, Japanese, Korean (more later). See [[#Languages (i18n)]]
 > - **Look:** Light, Dark or follow the OS; user-chosen accent color; square or circle blocks; time fill direction with an optional water wave; date format, week start and 12/24-hour time. See [[F003]]
 > - **Templates:** 67 built-in activity templates in nine groups, with search and category filter. See [[F005]]
-> - **Your data:** Settings → Danger zone (behind an Advanced fold-out) deletes time blocks (all, or a date range) or all activities. See [[F003]]
+> - **Notes, Calendar and Reminders:** a board of sticky notes on paper (9 colors, pin, drag to reorder, max 200 characters, `#tags`), each note on a day; the Calendar shows, adds and moves them; any note can have a reminder. See [[F006]], [[F007]] and [[F008]]
+> - **Your data:** Settings → Danger zone (behind an Advanced fold-out) deletes time blocks (all, or a date range), all activities or all notes (tags are kept). See [[F003]]
 > - **Layout:** Responsive from 390px to wide screens; the sidebar can be folded away. See [[F004]]
 > - **License:** Apache License 2.0 (free to use for anything), plus a `NOTICE` file that asks for credit to **dewakuneiei** (https://github.com/dewakuneiei) and https://github.com/dewakuneiei/irontion
 
-Related features: [[F001]] [[F002]] [[F003]] [[F004]] [[F005]]
+Related features: [[F001]] [[F002]] [[F003]] [[F004]] [[F005]] [[F006]] [[F007]] [[F008]] [[F008]]
 
 ## Platform Roadmap
 
@@ -107,7 +108,7 @@ irontion/
 > - If mobile uses Tauri mobile instead of native, it can live in `apps/mobile`
 
 > [!info] Shared Rust core
-> Put all logic in `irontion-core` (activities, tags, time blocks, summaries, bulk delete).
+> Put all logic in `irontion-core` (activities, tags, time blocks, notes, summaries, bulk delete).
 > It can be reused later:
 > - Desktop → called directly by Tauri
 > - Mobile → through **UniFFI** (Kotlin / Swift bindings)
@@ -175,8 +176,10 @@ The app supports multiple languages from day one. All UI text comes from transla
 | `tags`          | `id`, `name` (unique, case-insensitive), `color`                         |
 | `activity_tags` | `activity_id`, `tag_id`                                                  |
 | `time_blocks`   | `date` (YYYY-MM-DD), `slot` (0–143), `activity_id`                       |
+| `notes`         | `id`, `text` (max 200 characters), `date` (YYYY-MM-DD, NOT NULL), `color`, `pinned`, `position` (board order), `remind_at`, `reminded_at` (UTC), `created_at`, `updated_at` (UTC). Indexes on `date` and `remind_at`. See [[F006]], [[F008]] |
+| `note_tags`     | `note_id`, `tag_id` (cascade both ways; the same tags as activities, max 5 per note) |
 
-Rules enforced in Rust (and covered by tests): leaf-only assignment, max 5 levels, archive cascades down, restore brings back parents, permanent delete only after archive. See [[F002]].
+Rules enforced in Rust (and covered by tests): leaf-only assignment, max 5 levels, archive cascades down, restore brings back parents, permanent delete only after archive. See [[F002]]. Notes: every note has a date (only `move_note` changes it), a color from the palette, a well-formed UTC reminder, trimmed text of 1 to 200 characters without its `#tags`, at most 5 tags with valid names; tags are created in the note's transaction. See [[F006]].
 
 > [!note]
 > One day = at most 144 rows in `time_blocks`. One year ≈ 52,000 rows, which is very small for SQLite.
@@ -187,7 +190,8 @@ Rules enforced in Rust (and covered by tests): leaf-only assignment, max 5 level
 | ---- | ------- | ----- |
 | Rust core (rules + SQL) | `cargo test` | `crates/irontion-core` |
 | Tauri commands over real IPC (mock runtime) | `cargo test` | `apps/desktop/src-tauri` |
-| Domain logic (grid editing, tree, streaks) | `pnpm test` | `apps/desktop` |
+| Domain logic (grid editing, tree, streaks, note `#tag` parsing, counting, board order and columns, filters, reminders, save queue, calendar helpers) and the preview backend's rules | `pnpm test` | `apps/desktop` |
+| Note rules shared by Rust and TypeScript | both suites read `crates/irontion-core/fixtures/note_rules.json` | |
 | Types and translations complete | `pnpm check` | `apps/desktop` |
 | Lint | `cargo clippy --all-targets -- -D warnings` | both Rust crates |
 

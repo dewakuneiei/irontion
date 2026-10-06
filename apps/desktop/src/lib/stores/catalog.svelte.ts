@@ -7,6 +7,7 @@ import type {
   NewActivity,
   Tag,
   TagInput,
+  TagUsage,
   TreeNode,
   TreePlanItem,
   TreeReport,
@@ -21,6 +22,8 @@ import { buildTree, effectiveColor, effectiveTagIds, flatten, indexById, isAssig
 class CatalogStore {
   activities = $state<Activity[]>([]);
   tags = $state<Tag[]>([]);
+  /** How many activities and notes use each tag (the tags panel shows both). */
+  tagUsage = $state<ReadonlyMap<number, TagUsage>>(new Map());
   loaded = $state(false);
   /** False in the browser preview, where nothing is saved. */
   persistent = $state(true);
@@ -141,11 +144,23 @@ class CatalogStore {
     await this.reload();
   }
 
+  /**
+   * Reload only the tags and their usage. Notes call this after a write: `#name` may have created
+   * a tag, and a note's tags change the counts. Time data is untouched, so reports keep theirs.
+   */
+  async refreshTags() {
+    const backend = await getBackend();
+    const [tags, usage] = await Promise.all([backend.listTags(), backend.tagUsage()]);
+    this.tags = tags;
+    this.tagUsage = new Map(usage.map((u) => [u.tagId, u]));
+  }
+
   private async reload() {
     const backend = await getBackend();
-    const [activities, tags] = await Promise.all([backend.listActivities(), backend.listTags()]);
+    const [activities, tags, usage] = await Promise.all([backend.listActivities(), backend.listTags(), backend.tagUsage()]);
     this.activities = activities;
     this.tags = tags;
+    this.tagUsage = new Map(usage.map((u) => [u.tagId, u]));
     this.persistent = backend.persistent;
     this.loaded = true;
     this.version++;

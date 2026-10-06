@@ -2,7 +2,7 @@
 
 Local-first time-blocking and habit tracker. Desktop first (Linux, then Windows/macOS), later web and mobile.
 
-- Product notes and feature specs: `irontion_docs/` (Obsidian vault). `info.md` is the tech stack; `features/F00X.md` are specs. Update a spec's checklist when you ship part of it.
+- Product notes and feature specs: `irontion_docs/` (Obsidian vault). `info.md` is the tech stack; `features/F00X.md` are specs (F006 Notes, F007 Calendar, F008 Reminders). Update a spec's checklist when you ship part of it.
 - Desktop app: `apps/desktop` (Tauri 2 + SvelteKit SPA + Svelte 5 runes + Tailwind 4 + ECharts).
 - Shared Rust logic and SQLite: `crates/irontion-core` (no Tauri dependency, unit-tested).
 
@@ -40,4 +40,4 @@ Before saying a change is done: `pnpm check`, `pnpm test`, and `cargo test` in b
 - Colors come from theme tokens (`bg-surface`, `text-ink-2`, `bg-accent`, ...) so light, dark and the user's accent color all work. Never hard-code a UI color or assume the accent is blue. User-chosen activity colors are the only exception.
 - Every page must work from 390px to wide screens with no sideways scroll (see `irontion-ui-rules`, Responsive).
 - The database is the source of truth. The UI never invents IDs or keeps state that the backend does not know about.
-- Only leaf activities (no active children) can be assigned to new time blocks. Deleting an activity archives it; history stays. The one exception is Settings → Danger zone, which permanently deletes on purpose (behind an Advanced fold-out, with counts and a confirmation).
+- Only leaf activities (no active children) can be assigned to new time blocks. Deleting an activity archives it; history stays. The one exception is Settings → Danger zone, which permanently deletes on purpose (behind an Advanced fold-out, with counts and a confirmation). Notes are deleted for good too: one at a time from the paper (with an Undo notice), or all at once there. Deleting activities or time blocks never deletes notes. Every note has a date; only the Calendar's "Move to another day" changes it.

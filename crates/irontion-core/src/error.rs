@@ -23,6 +23,16 @@ pub enum Error {
     NotArchived,
     #[error("a tag with this name already exists")]
     DuplicateTag,
+    #[error("a note can't be empty")]
+    NoteEmpty,
+    #[error("a note can have at most {max} characters", max = crate::MAX_NOTE_LEN)]
+    NoteTooLong,
+    #[error("a note can have at most {max} tags", max = crate::MAX_NOTE_TAGS)]
+    NoteTooManyTags,
+    #[error("a tag from a note may only use letters, marks, digits, _ and -")]
+    InvalidNoteTag,
+    #[error("a reminder must be a UTC time like 2026-10-06T08:30:00Z")]
+    InvalidReminder,
     #[error("database error: {0}")]
     Database(#[from] rusqlite::Error),
     #[error("could not prepare the data folder: {0}")]
@@ -43,6 +53,11 @@ impl Error {
             Error::Archived => "archived",
             Error::NotArchived => "notArchived",
             Error::DuplicateTag => "duplicateTag",
+            Error::NoteEmpty => "noteEmpty",
+            Error::NoteTooLong => "noteTooLong",
+            Error::NoteTooManyTags => "noteTooManyTags",
+            Error::InvalidNoteTag => "invalidNoteTag",
+            Error::InvalidReminder => "invalidReminder",
             Error::Database(_) => "database",
             Error::Io(_) => "io",
         }

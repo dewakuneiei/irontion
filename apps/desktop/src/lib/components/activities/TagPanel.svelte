@@ -9,6 +9,7 @@
   import Modal from "$lib/components/Modal.svelte";
   import { t } from "$lib/i18n/index.svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
+  import { notes } from "$lib/stores/notes.svelte";
 
   let newName = $state("");
   let createError = $state<string | null>(null);
@@ -20,9 +21,11 @@
   let editOpen = $state(false);
   let deleting = $state<Tag | null>(null);
 
-  const usage = $derived(
-    new Map(catalog.tags.map((tag) => [tag.id, catalog.activities.filter((a) => a.tagIds.includes(tag.id)).length])),
-  );
+  /** How many activities and notes use a tag (both share the same tags). */
+  const usageOf = (id: number) => ({
+    activities: catalog.tagUsage.get(id)?.activities ?? 0,
+    notes: catalog.tagUsage.get(id)?.notes ?? 0,
+  });
 
   async function create(event: SubmitEvent) {
     event.preventDefault();
@@ -52,6 +55,12 @@
     } catch (err) {
       editError = t(`errors.${errorKind(err)}`);
     }
+  }
+
+  /** The notes keep their text; they only lose this tag, so a loaded note list is refreshed. */
+  async function deleteTag(id: number) {
+    await catalog.deleteTag(id);
+    if (notes.loaded) await notes.reload();
   }
 
   function askDelete() {
@@ -87,7 +96,7 @@
         <li class="group flex h-9 items-center gap-2.5 rounded-lg px-2 hover:bg-surface-hover">
           <span class="size-2.5 rounded-full" style:background={tag.color ?? "var(--muted)"}></span>
           <span class="min-w-0 flex-1 truncate text-sm">{tag.name}</span>
-          <span class="text-xs text-muted tabular-nums">{t("tags.used", { n: usage.get(tag.id) ?? 0 })}</span>
+          <span class="text-xs text-muted tabular-nums">{t("tags.used", usageOf(tag.id))}</span>
           <button
             type="button"
             class="grid size-7 place-items-center rounded-md text-ink-2 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-surface-2 [@media(hover:none)]:opacity-100"
@@ -137,10 +146,10 @@
   {@const tag = deleting}
   <ConfirmModal
     title={t("tags.confirmDelete.title", { name: tag.name })}
-    body={t("tags.confirmDelete.body", { n: usage.get(tag.id) ?? 0 })}
+    body={t("tags.confirmDelete.body", usageOf(tag.id))}
     confirmLabel={t("tags.delete")}
     danger
-    onconfirm={() => catalog.deleteTag(tag.id)}
+    onconfirm={() => deleteTag(tag.id)}
     onclose={() => (deleting = null)}
   />
 {/if}

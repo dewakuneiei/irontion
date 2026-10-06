@@ -35,24 +35,10 @@ export function range(a: number, b: number): number[] {
   return Array.from({ length: Math.max(a, b) - first + 1 }, (_, i) => first + i);
 }
 
-/** The block under a cell: its whole run of the same activity, or just the cell when empty. */
-export function blockAt(slots: DaySlots, slot: number): number[] {
-  const id = slots[slot];
-  if (id === null) return [slot];
-  let start = slot;
-  let end = slot;
-  while (start > 0 && slots[start - 1] === id) start--;
-  while (end < slots.length - 1 && slots[end + 1] === id) end++;
-  return range(start, end);
-}
-
-/** The selection with the block under `slot` added, or taken out if `slot` is already selected. */
-export function toggleBlock(slots: DaySlots, selection: ReadonlySet<number>, slot: number): Set<number> {
+/** The selection with one cell added, or taken out if it is already selected. Never its neighbours. */
+export function toggleSlot(selection: ReadonlySet<number>, slot: number): Set<number> {
   const next = new Set(selection);
-  for (const cell of blockAt(slots, slot)) {
-    if (selection.has(slot)) next.delete(cell);
-    else next.add(cell);
-  }
+  if (!next.delete(slot)) next.add(slot);
   return next;
 }
 

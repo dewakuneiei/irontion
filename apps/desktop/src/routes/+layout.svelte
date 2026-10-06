@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import FlaskConical from "@lucide/svelte/icons/flask-conical";
   import PanelLeftOpen from "@lucide/svelte/icons/panel-left-open";
@@ -12,6 +13,7 @@
   import { preferences } from "$lib/preferences.svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { notices } from "$lib/stores/notices.svelte";
+  import { reminders } from "$lib/stores/reminders.svelte";
   import { theme } from "$lib/theme.svelte";
 
   let { children } = $props();
@@ -22,6 +24,9 @@
     void i18n.init();
     catalog.ensureLoaded().catch((err) => notices.error(err));
   });
+
+  // Reminders come due while the app is open: show them, one time each (F008).
+  $effect(() => reminders.start((note) => void goto(`/notes/${note.id}`)));
 
   // Reflect theme, accent, block shape and language on <html> so CSS tokens and fonts apply.
   $effect(() => {

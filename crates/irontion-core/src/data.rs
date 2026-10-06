@@ -8,13 +8,24 @@ use crate::{Error, Result, validate};
 /// What `delete` would remove for this scope. Changes nothing.
 pub fn count(conn: &Connection, scope: &DeleteScope) -> Result<DataCounts> {
     check(scope)?;
+    let none = DataCounts {
+        blocks: 0,
+        activities: 0,
+        notes: 0,
+    };
     Ok(match scope {
-        DeleteScope::AllBlocks | DeleteScope::AllActivities => DataCounts {
+        DeleteScope::AllBlocks => DataCounts {
             blocks: table_count(conn, "time_blocks")?,
-            activities: match scope {
-                DeleteScope::AllActivities => table_count(conn, "activities")?,
-                _ => 0,
-            },
+            ..none
+        },
+        DeleteScope::AllActivities => DataCounts {
+            blocks: table_count(conn, "time_blocks")?,
+            activities: table_count(conn, "activities")?,
+            ..none
+        },
+        DeleteScope::AllNotes => DataCounts {
+            notes: table_count(conn, "notes")?,
+            ..none
         },
         DeleteScope::BlocksInRange { from, to } => DataCounts {
             blocks: conn.query_row(
@@ -22,7 +33,7 @@ pub fn count(conn: &Connection, scope: &DeleteScope) -> Result<DataCounts> {
                 params![from, to],
                 |r| r.get(0),
             )?,
-            activities: 0,
+            ..none
         },
     })
 }
@@ -30,7 +41,7 @@ pub fn count(conn: &Connection, scope: &DeleteScope) -> Result<DataCounts> {
 /// Delete everything in the scope in one transaction and say how much went.
 ///
 /// Deleting activities also deletes their time blocks and tag links (foreign-key
-/// cascade). Tags themselves stay.
+/// cascade). Tags stay, and notes are never touched by activity or block scopes.
 pub fn delete(conn: &mut Connection, scope: &DeleteScope) -> Result<DataCounts> {
     check(scope)?;
     let tx = conn.transaction()?;
@@ -42,6 +53,7 @@ pub fn delete(conn: &mut Connection, scope: &DeleteScope) -> Result<DataCounts> 
             params![from, to],
         )?,
         DeleteScope::AllActivities => tx.execute("DELETE FROM activities", [])?,
+        DeleteScope::AllNotes => tx.execute("DELETE FROM notes", [])?,
     };
     tx.commit()?;
     Ok(counts)
@@ -66,8 +78,8 @@ fn table_count(conn: &Connection, table: &str) -> Result<i64> {
 mod tests {
     use super::*;
     use crate::db::open_in_memory;
-    use crate::model::{ActivityId, DayChange, NewActivity, TagInput};
-    use crate::{activities, blocks, tags};
+    use crate::model::{ActivityId, DayChange, NewActivity, NewNote, TagInput};
+    use crate::{activities, blocks, notes, tags};
 
     fn activity(conn: &mut Connection, parent_id: Option<ActivityId>, name: &str) -> ActivityId {
         let color = parent_id.is_none().then(|| "#2a78d6".to_string());
@@ -124,14 +136,16 @@ mod tests {
             all,
             DataCounts {
                 blocks: 9,
-                activities: 2
+                activities: 2,
+                notes: 0
             }
         );
         assert_eq!(
             count(&conn, &DeleteScope::AllBlocks).unwrap(),
             DataCounts {
                 blocks: 9,
-                activities: 0
+                activities: 0,
+                notes: 0
             }
         );
         assert_eq!(block_total(&conn), 9);
@@ -145,7 +159,8 @@ mod tests {
             gone,
             DataCounts {
                 blocks: 9,
-                activities: 0
+                activities: 0,
+                notes: 0
             }
         );
         assert_eq!(block_total(&conn), 0);
@@ -186,7 +201,8 @@ mod tests {
             gone,
             DataCounts {
                 blocks: 0,
-                activities: 0
+                activities: 0,
+                notes: 0
             }
         );
         assert_eq!(block_total(&conn), 9);
@@ -229,12 +245,72 @@ mod tests {
             gone,
             DataCounts {
                 blocks: 10,
-                activities: 3
+                activities: 3,
+                notes: 0
             }
         );
         assert!(activities::list(&conn).unwrap().is_empty());
         assert_eq!(block_total(&conn), 0);
         assert_eq!(tags::list(&conn).unwrap().len(), 1, "tags are kept");
+    }
+
+    fn note(conn: &mut Connection, date: &str) {
+        notes::create_note(
+            conn,
+            NewNote {
+                date: date.into(),
+                text: "x #kept".into(),
+                color: "yellow".into(),
+                tags: vec![],
+            },
+        )
+        .unwrap();
+    }
+
+    fn note_total(conn: &Connection) -> i64 {
+        table_count(conn, "notes").unwrap()
+    }
+
+    #[test]
+    fn all_notes_counts_and_deletes_every_note_and_keeps_tags() {
+        let (mut conn, ..) = sample();
+        note(&mut conn, "2026-10-01");
+        note(&mut conn, "2026-10-03");
+        note(&mut conn, "2026-10-30");
+
+        let counts = count(&conn, &DeleteScope::AllNotes).unwrap();
+        assert_eq!(
+            counts,
+            DataCounts {
+                blocks: 0,
+                activities: 0,
+                notes: 3
+            }
+        );
+        assert_eq!(delete(&mut conn, &DeleteScope::AllNotes).unwrap(), counts);
+        assert_eq!(note_total(&conn), 0);
+        assert_eq!(block_total(&conn), 9, "time blocks stay");
+        assert_eq!(activities::list(&conn).unwrap().len(), 2, "activities stay");
+        assert!(
+            tags::list(&conn).unwrap().iter().any(|t| t.name == "kept"),
+            "tags used by notes stay"
+        );
+    }
+
+    #[test]
+    fn deleting_blocks_or_activities_never_deletes_notes() {
+        let (mut conn, ..) = sample();
+        note(&mut conn, "2026-10-01");
+        note(&mut conn, "2026-10-03");
+        for scope in [
+            range("2026-10-03", "2026-10-05"),
+            DeleteScope::AllBlocks,
+            DeleteScope::AllActivities,
+        ] {
+            assert_eq!(count(&conn, &scope).unwrap().notes, 0, "{scope:?}");
+            assert_eq!(delete(&mut conn, &scope).unwrap().notes, 0, "{scope:?}");
+            assert_eq!(note_total(&conn), 2, "{scope:?}");
+        }
     }
 
     #[test]
@@ -243,13 +319,15 @@ mod tests {
         for scope in [
             DeleteScope::AllBlocks,
             DeleteScope::AllActivities,
+            DeleteScope::AllNotes,
             range("2026-10-01", "2026-10-31"),
         ] {
             assert_eq!(
                 delete(&mut conn, &scope).unwrap(),
                 DataCounts {
                     blocks: 0,
-                    activities: 0
+                    activities: 0,
+                    notes: 0
                 }
             );
         }

@@ -23,6 +23,19 @@
         <Info size={18} class="mt-px shrink-0 text-accent" />
       {/if}
       <p class="flex-1">{notice.message}</p>
+      {#if notice.action}
+        {@const action = notice.action}
+        <button
+          type="button"
+          class="-my-0.5 shrink-0 rounded-md px-2 py-0.5 font-medium text-accent hover:bg-surface-hover"
+          onclick={() => {
+            notices.dismiss(notice.id);
+            void action.run();
+          }}
+        >
+          {action.label}
+        </button>
+      {/if}
       <button
         type="button"
         class="text-muted hover:text-ink"

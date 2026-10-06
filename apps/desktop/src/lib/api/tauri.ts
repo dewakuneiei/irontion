@@ -11,8 +11,15 @@ import type {
   DeleteScope,
   ErrorKind,
   NewActivity,
+  NewNote,
+  Note,
+  NoteDayCount,
+  NoteEdit,
+  NoteFilter,
+  NoteQuery,
   Tag,
   TagInput,
+  TagUsage,
   TreeNode,
   TreePlanItem,
   TreeReport,
@@ -54,6 +61,20 @@ export class TauriBackend implements Backend {
 
   activityTotals = (from: string, to: string) => this.call<ActivityTotal[]>("activity_totals", { from, to });
   dailyTotals = (from: string, to: string) => this.call<DailyTotal[]>("daily_totals", { from, to });
+
+  tagUsage = () => this.call<TagUsage[]>("tag_usage");
+  listNotes = (query: NoteQuery, filter?: NoteFilter) => this.call<Note[]>("list_notes", { query, filter: filter ?? null });
+  createNote = (input: NewNote) => this.call<Note>("create_note", { input });
+  updateNote = (id: number, edit: NoteEdit) => this.call<Note>("update_note", { id, edit });
+  moveNote = (id: number, date: string) => this.call<Note>("move_note", { id, date });
+  deleteNote = (id: number) => this.call<Note>("delete_note", { id });
+  restoreNote = (note: Note) => this.call<Note>("restore_note", { note });
+  pinNote = (id: number, pinned: boolean) => this.call<Note>("pin_note", { id, pinned });
+  reorderNotes = (ids: number[]) => this.call<void>("reorder_notes", { ids });
+  setNoteReminder = (id: number, remindAt: string | null) => this.call<Note>("set_note_reminder", { id, remindAt });
+  dueReminders = () => this.call<Note[]>("due_reminders");
+  markNoteReminded = (id: number) => this.call<Note>("mark_note_reminded", { id });
+  noteMonthCounts = (from: string, to: string) => this.call<NoteDayCount[]>("note_month_counts", { from, to });
 
   countData = (scope: DeleteScope) => this.call<DataCounts>("count_data", { scope });
   deleteData = (scope: DeleteScope) => this.call<DataCounts>("delete_data", { scope });

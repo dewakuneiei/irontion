@@ -2,6 +2,7 @@
 // as `irontion-core` so the preview never shows behavior the real app would reject.
 // Data resets on reload and starts with the "Student" example from F002.
 
+import { MAX_NOTE_LEN, MAX_NOTE_TAGS, addTagName, extractTags, isNoteColor, isValidTagName, noteLength } from "$lib/domain/notes";
 import { isAssignable, MAX_DEPTH, subtreeIds } from "$lib/domain/tree";
 import { addDays, fromISODate, SLOTS_PER_DAY, slotAt, todayISO } from "$lib/domain/time";
 import { BackendError, type Backend } from "./backend";
@@ -16,8 +17,16 @@ import type {
   DeleteScope,
   ErrorKind,
   NewActivity,
+  NewNote,
+  Note,
+  NoteColor,
+  NoteDayCount,
+  NoteEdit,
+  NoteFilter,
+  NoteQuery,
   Tag,
   TagInput,
+  TagUsage,
   TreeNode,
   TreePlanItem,
   TreeReport,
@@ -41,11 +50,45 @@ function checkColor(raw: string | null): string | null {
   return raw.toLowerCase();
 }
 
+/** Same shape check as the core: `YYYY-MM-DD` with a month of 1-12 and a day of 1-31. */
+function isValidDate(date: string): boolean {
+  return /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(date);
+}
+
+function checkDateRange(from: string, to: string) {
+  if (!isValidDate(from) || !isValidDate(to) || from > to) fail("invalidDate");
+}
+
+/**
+ * The rules of `irontion_core::notes`, in the same order: text (without its `#tags`) not empty and
+ * not too long, at most five tags. Returns the text to store and every tag name.
+ */
+function checkNote(rawText: string, given: readonly string[]): { text: string; tags: string[] } {
+  const extracted = extractTags(rawText);
+  const text = extracted.text.trim();
+  if (text === "") fail("noteEmpty");
+  if (noteLength(text) > MAX_NOTE_LEN) fail("noteTooLong");
+  const tags: string[] = [];
+  for (const name of [...given, ...extracted.tags]) addTagName(tags, name.trim().replace(/^#/, ""));
+  if (tags.length > MAX_NOTE_TAGS) fail("noteTooManyTags");
+  return { text, tags };
+}
+
+/** The core's `validate::timestamp`: UTC `YYYY-MM-DDTHH:MM:SS[.fff]Z`, returned with milliseconds. */
+function checkReminder(raw: string): string {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?Z$/.exec(raw);
+  if (!m || !isValidDate(m[1]) || Number(m[2]) > 23 || Number(m[3]) > 59 || Number(m[4]) > 59) fail("invalidReminder");
+  return `${m[1]}T${m[2]}:${m[3]}:${m[4]}.${m[5] ?? "000"}Z`;
+}
+
 export class PreviewBackend implements Backend {
   readonly persistent = false;
 
   private activities: Activity[] = [];
   private tags: Tag[] = [];
+  private notes: Note[] = [];
+  /** The board order inside a group: smaller comes first (the core's `position` column). */
+  private positions = new Map<number, number>();
   private days = new Map<string, DaySlots>();
   private nextId = 1;
 
@@ -201,6 +244,7 @@ export class PreviewBackend implements Backend {
     if (!this.tags.some((t) => t.id === id)) fail("notFound");
     this.tags = this.tags.filter((t) => t.id !== id);
     this.activities.forEach((a) => (a.tagIds = a.tagIds.filter((t) => t !== id)));
+    this.notes.forEach((n) => (n.tagIds = n.tagIds.filter((t) => t !== id)));
   }
 
   // ---------- Blocks ----------
@@ -242,19 +286,195 @@ export class PreviewBackend implements Backend {
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
+  // ---------- Notes ----------
+
+  async tagUsage(): Promise<TagUsage[]> {
+    return (await this.listTags()).map((tag) => ({
+      tagId: tag.id,
+      activities: this.activities.filter((a) => a.tagIds.includes(tag.id)).length,
+      notes: this.notes.filter((n) => n.tagIds.includes(tag.id)).length,
+    }));
+  }
+
+  async listNotes(query: NoteQuery, filter: NoteFilter = {}): Promise<Note[]> {
+    if (query.kind === "date" && !isValidDate(query.date)) fail("invalidDate");
+    if (query.kind === "range") checkDateRange(query.from, query.to);
+    const inQuery = (note: Note) =>
+      query.kind === "all" ||
+      (query.kind === "date" ? note.date === query.date : note.date >= query.from && note.date <= query.to);
+    const words = (filter.keyword ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+    const names = (note: Note) => note.tagIds.map((id) => this.tags.find((t) => t.id === id)?.name.toLowerCase() ?? "");
+    const matches = (note: Note) =>
+      (filter.tagId == null || note.tagIds.includes(filter.tagId)) &&
+      words.every((w) => note.text.toLowerCase().includes(w) || names(note).some((n) => n.includes(w)));
+    return structuredClone(this.notes.filter((n) => inQuery(n) && matches(n)).sort((a, b) => this.boardOrder(a, b)));
+  }
+
+  /** Pinned first, then by position; a tie goes to the newer note (like `ORDER BY ... id DESC`). */
+  private boardOrder(a: Note, b: Note): number {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return (this.positions.get(a.id) ?? 0) - (this.positions.get(b.id) ?? 0) || b.id - a.id;
+  }
+
+  /** One before the first position on the board: where a new or newly pinned note goes. */
+  private topPosition(): number {
+    return this.notes.length === 0 ? 0 : Math.min(...this.notes.map((n) => this.positions.get(n.id) ?? 0)) - 1;
+  }
+
+  async createNote(input: NewNote): Promise<Note> {
+    const { text, tags } = checkNote(input.text, input.tags);
+    if (!isNoteColor(input.color)) fail("invalidColor");
+    if (!isValidDate(input.date)) fail("invalidDate");
+    const now = new Date().toISOString();
+    const position = this.topPosition();
+    const note: Note = {
+      id: this.nextId++,
+      text,
+      date: input.date,
+      color: input.color,
+      pinned: false,
+      tagIds: this.resolveNoteTags(tags),
+      remindAt: null,
+      remindedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.notes.push(note);
+    this.positions.set(note.id, position);
+    return structuredClone(note);
+  }
+
+  async updateNote(id: number, edit: NoteEdit): Promise<Note> {
+    const { text, tags } = checkNote(edit.text, edit.tags);
+    if (!isNoteColor(edit.color)) fail("invalidColor");
+    const note = this.note(id);
+    const tagIds = this.resolveNoteTags(tags);
+    const sameTags = tagIds.length === note.tagIds.length && tagIds.every((t) => note.tagIds.includes(t));
+    if (note.text !== text || !sameTags || note.color !== edit.color) {
+      Object.assign(note, { text, tagIds, color: edit.color, updatedAt: new Date().toISOString() });
+    }
+    return structuredClone(note);
+  }
+
+  async moveNote(id: number, date: string): Promise<Note> {
+    if (!isValidDate(date)) fail("invalidDate");
+    const note = this.note(id);
+    if (note.date !== date) Object.assign(note, { date, updatedAt: new Date().toISOString() });
+    return structuredClone(note);
+  }
+
+  async deleteNote(id: number): Promise<Note> {
+    const note = this.note(id);
+    this.notes = this.notes.filter((n) => n.id !== id);
+    this.positions.delete(id);
+    return structuredClone(note);
+  }
+
+  async restoreNote(deleted: Note): Promise<Note> {
+    const { text } = checkNote(deleted.text, []);
+    if (!isNoteColor(deleted.color)) fail("invalidColor");
+    if (!isValidDate(deleted.date)) fail("invalidDate");
+    const remindAt = deleted.remindAt === null ? null : checkReminder(deleted.remindAt);
+    const position = this.topPosition();
+    const note: Note = {
+      ...structuredClone(deleted),
+      id: this.notes.some((n) => n.id === deleted.id) ? this.nextId++ : deleted.id,
+      text,
+      remindAt,
+      tagIds: deleted.tagIds.filter((id) => this.tags.some((t) => t.id === id)),
+    };
+    this.notes.push(note);
+    this.positions.set(note.id, position);
+    return structuredClone(note);
+  }
+
+  async pinNote(id: number, pinned: boolean): Promise<Note> {
+    const note = this.note(id);
+    if (note.pinned !== pinned) {
+      this.positions.set(id, this.topPosition());
+      note.pinned = pinned;
+    }
+    return structuredClone(note);
+  }
+
+  async reorderNotes(ids: number[]): Promise<void> {
+    const unique = [...new Set(ids)];
+    if (unique.some((id) => !this.notes.some((n) => n.id === id))) fail("notFound");
+    unique.forEach((id, index) => this.positions.set(id, index));
+  }
+
+  async setNoteReminder(id: number, remindAt: string | null): Promise<Note> {
+    const value = remindAt === null ? null : checkReminder(remindAt);
+    const note = this.note(id);
+    Object.assign(note, { remindAt: value, remindedAt: null });
+    return structuredClone(note);
+  }
+
+  async dueReminders(): Promise<Note[]> {
+    const now = new Date().toISOString();
+    const due = (n: Note) => n.remindAt !== null && n.remindedAt === null && n.remindAt <= now;
+    return structuredClone(this.notes.filter(due).sort((a, b) => a.remindAt!.localeCompare(b.remindAt!) || a.id - b.id));
+  }
+
+  async markNoteReminded(id: number): Promise<Note> {
+    const note = this.note(id);
+    if (note.remindAt !== null) note.remindedAt = new Date().toISOString();
+    return structuredClone(note);
+  }
+
+  async noteMonthCounts(from: string, to: string): Promise<NoteDayCount[]> {
+    checkDateRange(from, to);
+    const days = new Map<string, NoteDayCount>();
+    for (const note of this.notes) {
+      if (note.date < from || note.date > to) continue;
+      const day = days.get(note.date) ?? { date: note.date, notes: 0 };
+      day.notes++;
+      days.set(note.date, day);
+    }
+    return [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  private note(id: number): Note {
+    return this.notes.find((n) => n.id === id) ?? fail("notFound");
+  }
+
+  /**
+   * Tag ids for these names, like the core: an existing tag is reused (ignoring case); a new name
+   * must be a valid note tag. Every name is checked before any tag is created.
+   */
+  private resolveNoteTags(names: readonly string[]): number[] {
+    const existing = (name: string) => this.tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    if (names.some((name) => !existing(name) && !isValidTagName(name))) fail("invalidNoteTag");
+    const ids: number[] = [];
+    for (const name of names) {
+      let tag = existing(name);
+      if (!tag) this.tags.push((tag = { id: this.nextId++, name: checkName(name), color: null }));
+      if (!ids.includes(tag.id)) ids.push(tag.id);
+    }
+    return ids;
+  }
+
   // ---------- Delete data ----------
 
   async countData(scope: DeleteScope): Promise<DataCounts> {
-    if (scope.kind === "blocksInRange") this.checkRange(scope.from, scope.to);
+    if (scope.kind === "blocksInRange") checkDateRange(scope.from, scope.to);
     const inScope = (date: string) => scope.kind !== "blocksInRange" || (date >= scope.from && date <= scope.to);
     let blocks = 0;
-    for (const [date, slots] of this.days) if (inScope(date)) blocks += slots.filter((s) => s !== null).length;
-    return { blocks, activities: scope.kind === "allActivities" ? this.activities.length : 0 };
+    if (scope.kind !== "allNotes") {
+      for (const [date, slots] of this.days) if (inScope(date)) blocks += slots.filter((s) => s !== null).length;
+    }
+    return {
+      blocks,
+      activities: scope.kind === "allActivities" ? this.activities.length : 0,
+      notes: scope.kind === "allNotes" ? this.notes.length : 0,
+    };
   }
 
   async deleteData(scope: DeleteScope): Promise<DataCounts> {
     const counts = await this.countData(scope);
-    if (scope.kind === "allActivities") {
+    if (scope.kind === "allNotes") {
+      this.notes = [];
+    } else if (scope.kind === "allActivities") {
       this.activities = [];
       this.days.clear();
     } else if (scope.kind === "allBlocks") {
@@ -263,11 +483,6 @@ export class PreviewBackend implements Backend {
       for (const date of [...this.days.keys()]) if (date >= scope.from && date <= scope.to) this.days.delete(date);
     }
     return counts;
-  }
-
-  private checkRange(from: string, to: string) {
-    const valid = (d: string) => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(d);
-    if (!valid(from) || !valid(to) || from > to) fail("invalidDate");
   }
 
   // ---------- Helpers ----------
@@ -374,4 +589,16 @@ async function seed(b: PreviewBackend) {
     }
     await b.applyDayChanges(date, changes);
   }
+
+  // A few notes (F006): different colors and lengths, one pinned, one with a reminder.
+  const note = (date: string, text: string, color: NoteColor = "yellow") => b.createNote({ date, text, color, tags: [] });
+  await note(addDays(today, 24), "Hand in the thesis proposal #school", "red");
+  await note(today, "Laundry is not done yet. Tomorrow morning.", "orange");
+  await note(today, "Study for two focused hours. #school", "blue");
+  await note(addDays(today, -1), "Calm today, because I slept well. #health", "green");
+  const draft = await note(addDays(today, -1), "Finished the first draft of the essay.\n\nNext: read it aloud once, fix the intro, and send it to Sam before Friday. #school", "purple");
+  await note(addDays(today, -2), "Ideas for the weekend:\n- long walk\n- call grandma\n- bake bread", "pink");
+  const dentist = await note(today, "Call the dentist and book a check-up");
+  await b.pinNote(dentist.id, true);
+  await b.setNoteReminder(draft.id, new Date(Date.now() + 3 * 3600_000).toISOString());
 }

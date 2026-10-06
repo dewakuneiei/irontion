@@ -46,6 +46,27 @@ pub fn date(raw: &str) -> Result<()> {
     Ok(())
 }
 
+/// A UTC time as `YYYY-MM-DDTHH:MM:SS`, with optional milliseconds, and a trailing `Z`.
+/// Returned in one fixed shape (`...SS.fffZ`) so times compare correctly as text.
+pub fn timestamp(raw: &str) -> Result<String> {
+    let body = raw.strip_suffix('Z').ok_or(Error::InvalidReminder)?;
+    let (whole, millis) = body.split_once('.').map_or((body, "000"), |(w, m)| (w, m));
+    let digits = |s: &str, n: usize| s.len() == n && s.bytes().all(|b| b.is_ascii_digit());
+    let shape_ok = whole.len() == 19
+        && whole.as_bytes()[10] == b'T'
+        && date(&whole[..10]).is_ok()
+        && whole[11..].split(':').map(str::len).eq([2, 2, 2])
+        && whole[11..].split(':').all(|p| digits(p, 2))
+        && digits(millis, 3);
+    let hour: u32 = whole.get(11..13).and_then(|h| h.parse().ok()).unwrap_or(99);
+    let minute: u32 = whole.get(14..16).and_then(|m| m.parse().ok()).unwrap_or(99);
+    let second: u32 = whole.get(17..19).and_then(|s| s.parse().ok()).unwrap_or(99);
+    if !shape_ok || hour > 23 || minute > 59 || second > 59 {
+        return Err(Error::InvalidReminder);
+    }
+    Ok(format!("{whole}.{millis}Z"))
+}
+
 pub fn slot(slot: usize) -> Result<()> {
     if slot >= SLOTS_PER_DAY {
         return Err(Error::InvalidSlot);

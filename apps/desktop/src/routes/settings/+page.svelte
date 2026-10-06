@@ -7,6 +7,7 @@
   import Info from "@lucide/svelte/icons/info";
   import Languages from "@lucide/svelte/icons/languages";
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import StickyNote from "@lucide/svelte/icons/sticky-note";
   import Timer from "@lucide/svelte/icons/timer";
   import Palette from "@lucide/svelte/icons/palette";
   import { onMount } from "svelte";
@@ -15,6 +16,7 @@
   import Logo from "$lib/components/Logo.svelte";
   import Toggle from "$lib/components/Toggle.svelte";
   import AccentPicker from "$lib/components/settings/AccentPicker.svelte";
+  import NotePaperPicker from "$lib/components/settings/NotePaperPicker.svelte";
   import CellShapePicker from "$lib/components/settings/CellShapePicker.svelte";
   import FillDirectionPicker from "$lib/components/settings/FillDirectionPicker.svelte";
   import DangerZone from "$lib/components/settings/DangerZone.svelte";
@@ -154,6 +156,18 @@
         onchange={(on) => preferences.setFillAnimation(on)}
       />
     </div>
+  </section>
+
+  <!-- Note paper -->
+  <section class="rounded-2xl border border-line bg-surface p-6 shadow-card" in:fly={enter(4)}>
+    <div class="mb-5 flex items-start gap-3">
+      <span class="grid size-9 place-items-center rounded-xl bg-accent-soft text-accent"><StickyNote size={18} /></span>
+      <div>
+        <h2 class="font-semibold">{t("settings.paper.title")}</h2>
+        <p class="text-sm text-muted">{t("settings.paper.description")}</p>
+      </div>
+    </div>
+    <NotePaperPicker />
   </section>
 
   <!-- Date and time -->

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   assign,
-  blockAt,
   clampOffset,
   diff,
   emptyDay,
@@ -9,26 +8,14 @@ import {
   range,
   summarizeSelection,
   addRange,
-  toggleBlock,
+  toggleSlot,
 } from "./slots";
 
 const A = 1;
 const B = 2;
 const day = (cells: Record<number, number>) => emptyDay().map((_, i) => cells[i] ?? null);
 
-describe("blocks", () => {
-  it("selects the whole run under a filled cell, or just an empty cell", () => {
-    const slots = day({ 10: A, 11: A, 12: A, 13: B });
-    expect(blockAt(slots, 11)).toEqual([10, 11, 12]);
-    expect(blockAt(slots, 13)).toEqual([13]);
-    expect(blockAt(slots, 40)).toEqual([40]);
-  });
-
-  it("does not run across a gap or past the ends of the day", () => {
-    expect(blockAt(day({ 0: A, 1: A, 143: A }), 0)).toEqual([0, 1]);
-    expect(blockAt(day({ 142: A, 143: A }), 143)).toEqual([142, 143]);
-  });
-
+describe("ranges", () => {
   it("builds ranges in either direction", () => {
     expect(range(2, 5)).toEqual([2, 3, 4, 5]);
     expect(range(5, 2)).toEqual([2, 3, 4, 5]);
@@ -39,20 +26,17 @@ describe("blocks", () => {
 describe("building up a selection", () => {
   const slots = day({ 10: A, 11: A, 12: A, 20: B });
 
-  it("clicking a block adds the whole block and keeps what was selected", () => {
-    const first = toggleBlock(slots, new Set(), 11);
-    expect([...first].sort((a, b) => a - b)).toEqual([10, 11, 12]);
-    const second = toggleBlock(slots, first, 20);
-    expect([...second].sort((a, b) => a - b)).toEqual([10, 11, 12, 20]);
-    const third = toggleBlock(slots, second, 40); // an empty cell is just itself
-    expect(third.has(40)).toBe(true);
-    expect(third.size).toBe(5);
+  it("clicking a filled cell selects only that cell, never its neighbours of the same activity", () => {
+    const first = toggleSlot(new Set(), 11);
+    expect([...first]).toEqual([11]);
+    const second = toggleSlot(first, 20);
+    expect([...second].sort((a, b) => a - b)).toEqual([11, 20]);
+    expect(toggleSlot(second, 40).size).toBe(3);
   });
 
-  it("clicking a selected block takes just that block out", () => {
-    const selection = new Set([10, 11, 12, 20, 40]);
-    const next = toggleBlock(slots, selection, 11);
-    expect([...next].sort((a, b) => a - b)).toEqual([20, 40]);
+  it("clicking a selected cell takes just that cell out", () => {
+    const next = toggleSlot(new Set([10, 11, 12, 20]), 11);
+    expect([...next].sort((a, b) => a - b)).toEqual([10, 12, 20]);
   });
 
   it("dragging a range adds to the selection instead of replacing it", () => {
@@ -62,7 +46,7 @@ describe("building up a selection", () => {
 
   it("does not change the selection it was given", () => {
     const selection = new Set([1]);
-    toggleBlock(slots, selection, 10);
+    toggleSlot(selection, 10);
     addRange(selection, 5, 6);
     expect([...selection]).toEqual([1]);
   });

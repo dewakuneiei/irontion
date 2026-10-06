@@ -1,27 +1,13 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import ChartColumn from "@lucide/svelte/icons/chart-column";
-  import Grid3x3 from "@lucide/svelte/icons/grid-3x3";
   import PanelLeftClose from "@lucide/svelte/icons/panel-left-close";
-  import Settings from "@lucide/svelte/icons/settings";
-  import Shapes from "@lucide/svelte/icons/shapes";
-  import Sun from "@lucide/svelte/icons/sun";
-  import { t, type MessageKey } from "$lib/i18n/index.svelte";
+  import { t } from "$lib/i18n/index.svelte";
   import { layout } from "$lib/layout.svelte";
+  import { SIDEBAR_FOOTER, SIDEBAR_MAIN, isActive as isNavActive, type NavItem } from "$lib/nav";
   import Logo from "./Logo.svelte";
+  import TabBar from "./TabBar.svelte";
 
-  type NavItem = { label: MessageKey; icon: typeof Sun; href: string };
-
-  const main: NavItem[] = [
-    { label: "nav.today", icon: Sun, href: "/" },
-    { label: "nav.blocks", icon: Grid3x3, href: "/blocks" },
-    { label: "nav.activities", icon: Shapes, href: "/activities" },
-    { label: "nav.insights", icon: ChartColumn, href: "/insights" },
-  ];
-  const settings: NavItem = { label: "nav.settings", icon: Settings, href: "/settings" };
-  const all = [...main, settings];
-
-  const isActive = (item: NavItem) => item.href === page.url.pathname;
+  const isActive = (item: NavItem) => isNavActive(item, page.url.pathname);
 </script>
 
 <!-- Drawer backdrop: only when the sidebar slides over narrow windows. -->
@@ -60,29 +46,16 @@
   </div>
 
   <nav class="flex flex-1 flex-col gap-0.5">
-    {#each main as item (item.href)}
+    {#each SIDEBAR_MAIN as item (item.href)}
       {@render sideLink(item)}
     {/each}
     <div class="flex-1"></div>
-    {@render sideLink(settings)}
+    {@render sideLink(SIDEBAR_FOOTER)}
   </nav>
 </aside>
 
 <!-- Tab bar for phone-sized windows (under 640px). -->
-<nav class="fixed inset-x-0 bottom-0 z-30 flex h-16 gap-1 border-t border-line bg-surface px-2 sm:hidden">
-  {#each all as item (item.href)}
-    <a
-      href={item.href}
-      aria-current={isActive(item) ? "page" : undefined}
-      class="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors {isActive(item)
-        ? 'text-accent'
-        : 'text-ink-2'}"
-    >
-      <item.icon size={20} strokeWidth={2} />
-      {t(item.label)}
-    </a>
-  {/each}
-</nav>
+<TabBar />
 
 {#snippet sideLink(item: NavItem)}
   <a

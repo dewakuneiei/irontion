@@ -2,7 +2,8 @@
 // Call these from templates or `$derived` so they update when a preference changes.
 
 import { formatClock, formatDate, formatHour, type TimeFormat } from "$lib/domain/datetime";
-import { SLOT_MINUTES, fromISODate } from "$lib/domain/time";
+import { relativeDay } from "$lib/domain/calendar";
+import { SLOT_MINUTES, fromISODate, toISODate, todayISO } from "$lib/domain/time";
 import { i18n, t } from "$lib/i18n/index.svelte";
 import { preferences } from "$lib/preferences.svelte";
 
@@ -42,4 +43,18 @@ export function slotTimes(slot: number): { start: string; end: string } {
 /** Hour row label: "08" or "8 AM". */
 export function formatHourLabel(hour: number): string {
   return formatHour(hour, preferences.timeFormat, i18n.locale);
+}
+
+/** A note day's heading: "Today", "Tomorrow", "Yesterday", or the date in the user's format. */
+export function formatDayHeading(iso: string): string {
+  const relative = relativeDay(iso, todayISO());
+  return relative ? t(`notes.day.${relative}`) : formatDayLabel(iso);
+}
+
+/** A stored UTC time in local time: just the time today, else the date and the time. */
+export function formatTimestamp(utc: string): string {
+  const at = new Date(utc);
+  const time = formatTimeOfDay(at.getHours() * 60 + at.getMinutes());
+  const day = toISODate(at);
+  return day === todayISO() ? time : `${formatDay(day)} ${time}`;
 }

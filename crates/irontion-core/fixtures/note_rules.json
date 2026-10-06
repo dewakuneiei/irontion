@@ -1,0 +1,174 @@
+{
+  "_comment": "Shared by irontion-core (notes.rs tests) and the desktop app (domain/notes.test.ts). Rust is the authority; change both sides together.",
+  "maxNoteLen": 200,
+  "maxNoteTags": 5,
+  "noteColors": ["yellow", "orange", "red", "pink", "purple", "blue", "teal", "green", "gray"],
+  "extract": [
+    {
+      "text": "Finish the report #work",
+      "expectText": "Finish the report",
+      "expectTags": [
+        "work"
+      ]
+    },
+    {
+      "text": "#work finish",
+      "expectText": "finish",
+      "expectTags": [
+        "work"
+      ]
+    },
+    {
+      "text": "Plan #work and #Home today",
+      "expectText": "Plan and today",
+      "expectTags": [
+        "work",
+        "Home"
+      ]
+    },
+    {
+      "text": "#Work and #work",
+      "expectText": "and",
+      "expectTags": [
+        "Work"
+      ]
+    },
+    {
+      "text": "C# is fun",
+      "expectText": "C# is fun",
+      "expectTags": []
+    },
+    {
+      "text": "issue#42",
+      "expectText": "issue#42",
+      "expectTags": []
+    },
+    {
+      "text": "# heading",
+      "expectText": "# heading",
+      "expectTags": []
+    },
+    {
+      "text": "#",
+      "expectText": "#",
+      "expectTags": []
+    },
+    {
+      "text": "#a#b",
+      "expectText": "#b",
+      "expectTags": [
+        "a"
+      ]
+    },
+    {
+      "text": "#work, then rest",
+      "expectText": ", then rest",
+      "expectTags": [
+        "work"
+      ]
+    },
+    {
+      "text": "#deep_work #low-energy go",
+      "expectText": "go",
+      "expectTags": [
+        "deep_work",
+        "low-energy"
+      ]
+    },
+    {
+      "text": "price #100",
+      "expectText": "price",
+      "expectTags": [
+        "100"
+      ]
+    },
+    {
+      "text": "line one\n#tag\nline two",
+      "expectText": "line one\n\nline two",
+      "expectTags": [
+        "tag"
+      ]
+    },
+    {
+      "text": "วันนี้ #สำเร็จ",
+      "expectText": "วันนี้",
+      "expectTags": [
+        "สำเร็จ"
+      ]
+    },
+    {
+      "text": "#ที่นี่ ดี",
+      "expectText": "ดี",
+      "expectTags": [
+        "ที่นี่"
+      ]
+    },
+    {
+      "text": "今日 #勉強",
+      "expectText": "今日",
+      "expectTags": [
+        "勉強"
+      ]
+    },
+    {
+      "text": "#日本語 テスト",
+      "expectText": "テスト",
+      "expectTags": [
+        "日本語"
+      ]
+    },
+    {
+      "text": "#공부 시작",
+      "expectText": "시작",
+      "expectTags": [
+        "공부"
+      ]
+    },
+    {
+      "text": "#🎉 party",
+      "expectText": "#🎉 party",
+      "expectTags": []
+    },
+    {
+      "text": "#party🎉",
+      "expectText": "🎉",
+      "expectTags": [
+        "party"
+      ]
+    },
+    {
+      "text": "#café time",
+      "expectText": "time",
+      "expectTags": [
+        "café"
+      ]
+    },
+    {
+      "text": "#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectText": "#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expectTags": []
+    }
+  ],
+  "tagNames": {
+    "valid": [
+      "work",
+      "deep_work",
+      "low-energy",
+      "สำเร็จ",
+      "ที่นี่",
+      "勉強",
+      "日本語",
+      "공부",
+      "2026",
+      "café"
+    ],
+    "invalid": [
+      "",
+      "two words",
+      "🎉",
+      "a#b",
+      "a,b",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ]
+  }
+}

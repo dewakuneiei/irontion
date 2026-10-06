@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { DaySlots } from "$lib/api/types";
   import { readableInk } from "$lib/domain/color";
-  import { addRange, blockAt, moveSelection, toggleBlock } from "$lib/domain/slots";
+  import { addRange, moveSelection, toggleSlot } from "$lib/domain/slots";
   import { HOURS, SLOTS_PER_DAY, SLOTS_PER_HOUR, SLOT_MINUTES, type DayProgress } from "$lib/domain/time";
   import { formatCellTime, formatHourLabel, slotTimes } from "$lib/format.svelte";
   import { t } from "$lib/i18n/index.svelte";
@@ -47,7 +47,7 @@
   });
   // Selecting adds to what is already selected: it is only ever cleared on purpose.
   const selectDraft = $derived(
-    gesture?.kind === "select" && hovered !== null ? addRange(gesture.base, ...extent(gesture.anchor, hovered)) : null,
+    gesture?.kind === "select" && hovered !== null ? addRange(gesture.base, gesture.anchor, hovered) : null,
   );
 
   const shownSlots = $derived(moveDraft?.slots ?? slots);
@@ -58,16 +58,6 @@
   function phaseOf(slot: number): Phase {
     if (slot < time.elapsed) return "past";
     return time.isToday && slot === time.elapsed ? "current" : "future";
-  }
-
-  /**
-   * The slots a press from `from` to `to` covers: just one cell becomes its whole block (the run
-   * of the same activity), several cells are everything between.
-   */
-  function extent(from: number, to: number): [number, number] {
-    if (from !== to) return [from, to];
-    const block = blockAt(slots, from);
-    return [block[0], block[block.length - 1]];
   }
 
   /** What was selected before the current range started, forgetting it once the selection is cleared. */
@@ -117,25 +107,24 @@
       if (dropped && dropped.offset !== 0) commit(dropped);
       moving = false;
     } else if (finished?.kind === "select") {
-      selection = selected ?? addRange(finished.base, ...extent(finished.anchor, finished.anchor));
+      selection = selected ?? addRange(finished.base, finished.anchor, finished.anchor);
       anchor = finished.anchor;
       rangeBase = finished.base;
     } else if (finished?.kind === "move") {
       if (dropped && dropped.offset !== 0) {
         commit(dropped);
       } else {
-        // A click, not a drag: on a selected block it takes that block out of the selection.
-        selection = toggleBlock(slots, selection, finished.grab);
+        // A click, not a drag: on a selected cell it takes just that cell out of the selection.
+        selection = toggleSlot(selection, finished.grab);
         anchor = finished.grab;
         rangeBase = selection;
       }
     }
   }
 
-  /** Ctrl+click: one cell in or out, not its whole block. */
+  /** Ctrl+click: one cell in or out. */
   function toggle(slot: number) {
-    const next = new Set(selection);
-    if (!next.delete(slot)) next.add(slot);
+    const next = toggleSlot(selection, slot);
     selection = next;
     anchor = slot;
     rangeBase = next;
@@ -158,7 +147,7 @@
       cursor = Math.max(0, Math.min(SLOTS_PER_DAY - 1, cursor + step));
       if (event.shiftKey) selection = addRange(baseSelection(), anchor, cursor);
     } else if (event.key === "Enter" || event.key === " ") {
-      selection = toggleBlock(slots, selection, cursor);
+      selection = toggleSlot(selection, cursor);
       anchor = cursor;
       rangeBase = selection;
     } else {

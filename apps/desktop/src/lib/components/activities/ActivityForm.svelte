@@ -10,7 +10,7 @@
   import Button from "$lib/components/Button.svelte";
   import ColorPicker from "$lib/components/ColorPicker.svelte";
   import Modal from "$lib/components/Modal.svelte";
-  import TagChip from "$lib/components/TagChip.svelte";
+  import TagPicker from "$lib/components/TagPicker.svelte";
   import { nextColor } from "$lib/domain/color";
   import { t } from "$lib/i18n/index.svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
@@ -39,7 +39,6 @@
   let name = $state(editing?.name ?? "");
   let color = $state<string | null>(editing ? editing.color : parent ? null : nextColor(topLevelColors));
   let tagIds = $state<number[]>(editing?.tagIds ?? []);
-  let newTagName = $state("");
   let error = $state<string | null>(null);
   let busy = $state(false);
 
@@ -59,22 +58,6 @@
   );
   // Adding the first sub-activity turns the parent into a group that can't take new blocks.
   const parentBecomesGroup = !editing && !!parent && catalog.isAssignable(parent.id);
-
-  function toggleTag(id: number) {
-    tagIds = tagIds.includes(id) ? tagIds.filter((x) => x !== id) : [...tagIds, id];
-  }
-
-  async function addTag() {
-    if (!newTagName.trim()) return;
-    try {
-      const tag = await catalog.createTag({ name: newTagName, color: null });
-      tagIds = [...tagIds, tag.id];
-      newTagName = "";
-      error = null;
-    } catch (err) {
-      error = t(`errors.${errorKind(err)}`);
-    }
-  }
 
   async function save(event: SubmitEvent) {
     event.preventDefault();
@@ -136,33 +119,7 @@
 
     <fieldset class="flex flex-col gap-2">
       <legend class="mb-2 text-sm font-medium">{t("activities.form.tags")}</legend>
-      {#if catalog.tags.length > 0}
-        <div class="flex flex-wrap gap-1.5">
-          {#each catalog.tags as tag (tag.id)}
-            <TagChip {tag} selected={tagIds.includes(tag.id)} onclick={() => toggleTag(tag.id)} />
-          {/each}
-        </div>
-      {:else}
-        <p class="text-sm text-muted">{t("activities.form.noTags")}</p>
-      {/if}
-      <div class="flex gap-2">
-        <input
-          bind:value={newTagName}
-          maxlength="60"
-          placeholder={t("activities.form.newTag")}
-          class="h-8 min-w-0 flex-1 rounded-lg border border-line bg-surface px-2.5 text-sm outline-none focus:border-accent"
-          onkeydown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void addTag();
-            }
-          }}
-        />
-        <Button size="sm" onclick={addTag} disabled={!newTagName.trim()}>
-          <Plus size={14} />
-          {t("activities.form.addTag")}
-        </Button>
-      </div>
+      <TagPicker bind:tagIds onerror={(message) => (error = message)} />
       {#if inheritedTags.length > 0}
         <p class="text-xs text-muted">
           {t("activities.form.inheritedTags", { tags: inheritedTags.map((tag) => tag.name).join(", ") })}

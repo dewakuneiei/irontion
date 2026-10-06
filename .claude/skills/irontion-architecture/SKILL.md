@@ -45,6 +45,8 @@ Pure domain helpers (no I/O, no Svelte) live in `apps/desktop/src/lib/domain/`: 
 | `tags` | `id`, `name` (unique, case-insensitive), `color` | Flat. |
 | `activity_tags` | `activity_id`, `tag_id` | Many-to-many. Effective tags = own + ancestors' (computed in domain). |
 | `time_blocks` | `date` (YYYY-MM-DD, local), `slot` 0–143, `activity_id` | One row per filled 10-minute cell. Empty cell = no row. |
+| `notes` | `id`, `text` (≤200 graphemes, without its `#tags`), `date` (NOT NULL), `color`, `pinned`, `position`, `remind_at`, `reminded_at`, `created_at`, `updated_at` | Sticky notes (F006 in `irontion_docs/features`). Only `notes::move_note` changes a date. Independent of activities and blocks: deleting those never deletes notes. |
+| `note_tags` | `note_id`, `tag_id` | Notes use the same tags as activities, max 5; `#name` creates or reuses one in the note's transaction. |
 | `schema_version` via `PRAGMA user_version` | | Migrations in `crates/irontion-core/migrations/NNN_name.sql`, applied in order at startup. |
 
 Invariants (enforced in core, covered by tests):
