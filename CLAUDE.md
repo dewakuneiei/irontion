@@ -30,6 +30,8 @@ cargo test
 cargo clippy --all-targets -- -D warnings
 ```
 
+`pnpm app` and `pnpm app:build` run through `scripts/with-clean-env.mjs`, which strips Snap's environment. Without it, a native app started from VS Code's Snap terminal crashes with `symbol lookup error ... libpthread ... __libc_pthread_init`. Keep new launch scripts going through it.
+
 Before saying a change is done: `pnpm check`, `pnpm test`, and `cargo test` in both `crates/irontion-core` and `apps/desktop/src-tauri` must pass.
 
 ## Hard rules

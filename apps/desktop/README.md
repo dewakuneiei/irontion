@@ -68,6 +68,30 @@ Want a single double-click file instead? `pnpm tauri build --bundles appimage` w
 
 > Options 2 and 3 need the system libraries from [Setup](#setup-ubuntu). Without `sudo`, only option 1 works.
 
+## Troubleshooting
+
+### `symbol lookup error: /snap/core20/... undefined symbol: __libc_pthread_init`
+
+The app closes right away with this message (exit code 127).
+
+**Cause:** VS Code installed as a **Snap** gives its built-in terminal Snap's own library paths. The app then loads Snap's old system libraries instead of Ubuntu's and crashes. Nothing is wrong with the app or your install.
+
+**Fix:** none needed with `pnpm app` and `pnpm app:build`: they run through `scripts/with-clean-env.mjs`, which removes the Snap variables first. If you start the program some other way (for example `cargo run`, or `src-tauri/target/debug/irontion-desktop`) from that terminal, use either of these:
+
+```sh
+# 1. Run it through the same helper
+node scripts/with-clean-env.mjs cargo run
+
+# 2. Or use a normal terminal (outside VS Code's Snap), where the problem does not exist
+```
+
+To check whether your terminal is affected: `echo $SNAP` prints a path only inside a Snap terminal.
+
+### Other problems
+
+- **`glib-2.0` or `webkit2gtk` not found when compiling:** install the system libraries listed in [Setup](#setup-ubuntu).
+- **Port 1420 is busy:** another `pnpm app` or `pnpm dev` is still running. Close it first.
+
 ## Project Layout
 
 ```
@@ -85,6 +109,7 @@ src/
 │   └── layout.svelte.ts      # Sidebar fold in / out (F004)
 └── app.css             # Design tokens for both themes
 src-tauri/              # Thin Tauri commands over crates/irontion-core, window config, bundling
+scripts/                # with-clean-env.mjs: starts the app without Snap's environment (see Troubleshooting)
 assets/app-icon.svg     # Source for all app icons (`pnpm tauri icon assets/app-icon.svg`)
 ```
 
