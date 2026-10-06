@@ -18,6 +18,8 @@ class LayoutState {
   drawerOpen = $state(false);
   wide = $state(globalThis.matchMedia?.(WIDE_QUERY).matches ?? true);
   open = $derived(this.wide ? this.wideOpen : this.drawerOpen);
+  /** The last page outside Settings, where "Back" leaves it to. */
+  lastApp = $state("/");
 
   /** Track the window width. Returns a cleanup function. */
   init(): () => void {

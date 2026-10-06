@@ -1,6 +1,6 @@
 <script lang="ts">
   import "../app.css";
-  import { goto } from "$app/navigation";
+  import { afterNavigate, goto } from "$app/navigation";
   import { page } from "$app/state";
   import FlaskConical from "@lucide/svelte/icons/flask-conical";
   import PanelLeftOpen from "@lucide/svelte/icons/panel-left-open";
@@ -10,6 +10,7 @@
   import Toasts from "$lib/components/Toasts.svelte";
   import { i18n, t } from "$lib/i18n/index.svelte";
   import { layout } from "$lib/layout.svelte";
+  import { contextFor } from "$lib/nav";
   import { preferences } from "$lib/preferences.svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { notices } from "$lib/stores/notices.svelte";
@@ -17,6 +18,11 @@
   import { theme } from "$lib/theme.svelte";
 
   let { children } = $props();
+
+  // "Back" in Settings returns to the page the user came from.
+  afterNavigate(({ to }) => {
+    if (to && contextFor(to.url.pathname).id === "main") layout.lastApp = to.url.pathname + to.url.search;
+  });
 
   $effect(() => theme.init());
   $effect(() => layout.init());

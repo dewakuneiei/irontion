@@ -1,13 +1,21 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import PanelLeftClose from "@lucide/svelte/icons/panel-left-close";
   import { t } from "$lib/i18n/index.svelte";
   import { layout } from "$lib/layout.svelte";
-  import { SIDEBAR_FOOTER, SIDEBAR_MAIN, isActive as isNavActive, type NavItem } from "$lib/nav";
+  import { contextFor, isActive as isNavActive, type NavItem } from "$lib/nav";
   import Logo from "./Logo.svelte";
   import TabBar from "./TabBar.svelte";
 
+  const context = $derived(contextFor(page.url.pathname));
   const isActive = (item: NavItem) => isNavActive(item, page.url.pathname);
+
+  function leave() {
+    layout.afterNavigate();
+    void goto(layout.lastApp);
+  }
 </script>
 
 <!-- Drawer backdrop: only when the sidebar slides over narrow windows. -->
@@ -45,12 +53,26 @@
     </button>
   </div>
 
-  <nav class="flex flex-1 flex-col gap-0.5">
-    {#each SIDEBAR_MAIN as item (item.href)}
+  <nav class="flex flex-1 flex-col gap-0.5" aria-label={context.title ? t(context.title) : undefined}>
+    {#if context.back}
+      <button
+        type="button"
+        class="mb-1 flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-surface-hover hover:text-ink"
+        onclick={leave}
+        data-nav-back
+      >
+        <ArrowLeft size={18} strokeWidth={2} />
+        <span>{t(context.back.label)}</span>
+      </button>
+    {/if}
+    {#if context.title}
+      <h2 class="mb-1 px-3 text-lg font-semibold tracking-tight">{t(context.title)}</h2>
+    {/if}
+    {#each context.items as item (item.href)}
       {@render sideLink(item)}
     {/each}
     <div class="flex-1"></div>
-    {@render sideLink(SIDEBAR_FOOTER)}
+    {#if context.footer}{@render sideLink(context.footer)}{/if}
   </nav>
 </aside>
 

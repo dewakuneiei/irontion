@@ -111,7 +111,7 @@
     {#if selected !== null && paper !== undefined}
       <!-- Editing is never a bottom sheet: the paper sits in the panel, or fills the page when narrow. -->
       {#key paper.note?.id ?? "new"}
-        <NotePaper note={paper.note} date={selected} place="calendar" onback={() => (paper = undefined)} onmoved={followMove} />
+        <NotePaper note={paper.note} date={selected} onback={() => (paper = undefined)} onmoved={followMove} />
       {/key}
     {:else if selected !== null}
       <div class="sheet">

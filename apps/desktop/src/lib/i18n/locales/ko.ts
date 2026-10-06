@@ -16,6 +16,7 @@ export default {
     more: "더보기",
     moreLabel: "다른 페이지",
     settings: "설정",
+    back: "뒤로",
     hideSidebar: "사이드바 숨기기",
     showSidebar: "사이드바 보이기",
   },
@@ -310,8 +311,6 @@ export default {
       counter: "{n} / {max}",
       counterLabel: "{max}자 중 {n}자 사용",
       todayDate: "오늘 · {date}",
-      dateHint: "여기서 쓴 메모는 오늘 날짜가 돼요. 다른 날에 두려면 캘린더를 사용하세요.",
-      dateHintExisting: "이 메모를 다른 날로 옮기려면 캘린더를 사용하세요.",
       move: "다른 날로 옮기기",
       moved: "{date}(으)로 옮겼어요.",
       tags: "태그",
@@ -389,6 +388,15 @@ export default {
   settings: {
     title: "설정",
     subtitle: "Irontion을 나에게 맞게",
+    sections: {
+      appearance: "모양",
+      blocks: "블록",
+      animations: "애니메이션",
+      notes: "메모",
+      region: "언어 및 지역",
+      data: "데이터",
+      about: "정보",
+    },
     appearance: {
       title: "화면",
       description: "테마를 고르거나 운영체제 설정을 따르세요.",

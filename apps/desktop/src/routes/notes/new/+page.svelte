@@ -6,5 +6,5 @@
 
 <!-- A note written on the Notes page belongs to today; only the Calendar puts one on another day. -->
 <div class="mx-auto max-w-2xl pt-2">
-  <NotePaper note={null} date={todayISO()} place="notes" onback={() => goto("/notes")} />
+  <NotePaper note={null} date={todayISO()} onback={() => goto("/notes")} />
 </div>

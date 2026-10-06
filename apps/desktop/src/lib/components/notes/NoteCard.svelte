@@ -1,12 +1,11 @@
 <script lang="ts">
   import Bell from "@lucide/svelte/icons/bell";
-  import CalendarDays from "@lucide/svelte/icons/calendar-days";
   import Pin from "@lucide/svelte/icons/pin";
   import type { Note } from "$lib/api/types";
   import TagChip from "$lib/components/TagChip.svelte";
   import { noteColorCss } from "$lib/domain/notes";
   import { reminderState } from "$lib/domain/reminders";
-  import { formatDayHeading, formatTimestamp } from "$lib/format.svelte";
+  import { formatTimestamp } from "$lib/format.svelte";
   import { t } from "$lib/i18n/index.svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
 
@@ -50,7 +49,7 @@
 <article
   class="group paper paper-sheet paper-ruled paper-tape relative flex flex-col transition-[box-shadow,scale] duration-200 {onpress
     ? 'select-none [-webkit-touch-callout:none]'
-    : ''} {dragging ? 'scale-[1.03] cursor-grabbing opacity-95 shadow-2xl' : ''} {target
+    : ''} {dragging ? 'scale-[1.03] cursor-grabbing shadow-2xl' : ''} {target
     ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg'
     : ''}"
   style:--note={noteColorCss(note.color)}
@@ -92,12 +91,8 @@
         {/each}
       </span>
     {/if}
-    <span class="flex flex-wrap items-center gap-1.5">
-      <span class="inline-flex items-center gap-1.5 rounded-full bg-surface/70 px-2.5 py-1 text-xs font-medium text-ink-2 tabular-nums">
-        <CalendarDays size={13} aria-hidden="true" />
-        {formatDayHeading(note.date)}
-      </span>
-      {#if note.remindAt}
+    {#if note.remindAt}
+      <span class="flex flex-wrap items-center gap-1.5">
         <span
           class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium tabular-nums {reminder === 'past'
             ? 'bg-surface/70 text-muted'
@@ -107,8 +102,8 @@
           <Bell size={13} aria-hidden="true" />
           {formatTimestamp(note.remindAt)}
         </span>
-      {/if}
-    </span>
+      </span>
+    {/if}
   {/snippet}
 
   {#if href}

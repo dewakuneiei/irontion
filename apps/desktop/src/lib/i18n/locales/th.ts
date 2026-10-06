@@ -16,6 +16,7 @@ export default {
     more: "เพิ่มเติม",
     moreLabel: "หน้าอื่น ๆ",
     settings: "ตั้งค่า",
+    back: "กลับ",
     hideSidebar: "ซ่อนแถบด้านข้าง",
     showSidebar: "แสดงแถบด้านข้าง",
   },
@@ -310,8 +311,6 @@ export default {
       counter: "{n} จาก {max}",
       counterLabel: "ใช้ไป {n} จาก {max} ตัวอักษร",
       todayDate: "วันนี้ · {date}",
-      dateHint: "โน้ตที่เขียนที่นี่เป็นของวันนี้ ถ้าจะใส่โน้ตไว้วันอื่น ให้ใช้ปฏิทิน",
-      dateHintExisting: "ถ้าจะย้ายโน้ตนี้ไปวันอื่น ให้ใช้ปฏิทิน",
       move: "ย้ายไปวันอื่น",
       moved: "ย้ายไปวันที่ {date} แล้ว",
       tags: "แท็ก",
@@ -389,6 +388,15 @@ export default {
   settings: {
     title: "ตั้งค่า",
     subtitle: "ปรับ Irontion ให้เป็นแบบของคุณ",
+    sections: {
+      appearance: "รูปลักษณ์",
+      blocks: "บล็อก",
+      animations: "แอนิเมชัน",
+      notes: "โน้ต",
+      region: "ภาษาและภูมิภาค",
+      data: "ข้อมูล",
+      about: "เกี่ยวกับ",
+    },
     appearance: {
       title: "รูปลักษณ์",
       description: "เลือกธีม หรือให้ตามระบบปฏิบัติการ",

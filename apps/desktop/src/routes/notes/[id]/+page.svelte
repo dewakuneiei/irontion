@@ -18,7 +18,7 @@
 <div class="mx-auto max-w-2xl pt-2">
   {#if note}
     {#key note.id}
-      <NotePaper {note} date={note.date} place="notes" onback={() => goto("/notes")} />
+      <NotePaper {note} date={note.date} onback={() => goto("/notes")} />
     {/key}
   {:else if notes.loaded}
     <p class="py-10 text-center text-sm text-ink-2">{t("notes.notFound")}</p>

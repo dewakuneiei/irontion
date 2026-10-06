@@ -16,6 +16,7 @@ export default {
     more: "更多",
     moreLabel: "更多页面",
     settings: "设置",
+    back: "返回",
     hideSidebar: "隐藏侧边栏",
     showSidebar: "显示侧边栏",
   },
@@ -310,8 +311,6 @@ export default {
       counter: "{n} / {max}",
       counterLabel: "已用 {n} / {max} 个字符",
       todayDate: "今天 · {date}",
-      dateHint: "在这里写的便签属于今天。要放到其他日期，请使用日历。",
-      dateHintExisting: "要把这张便签移到其他日期，请使用日历。",
       move: "移到其他日期",
       moved: "已移到 {date}。",
       tags: "标签",
@@ -389,6 +388,15 @@ export default {
   settings: {
     title: "设置",
     subtitle: "让 Irontion 更适合你",
+    sections: {
+      appearance: "外观",
+      blocks: "时间块",
+      animations: "动画",
+      notes: "便签",
+      region: "语言和地区",
+      data: "数据",
+      about: "关于",
+    },
     appearance: {
       title: "外观",
       description: "选择主题，或跟随操作系统。",

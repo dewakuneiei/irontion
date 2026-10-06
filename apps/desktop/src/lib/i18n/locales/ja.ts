@@ -16,6 +16,7 @@ export default {
     more: "その他",
     moreLabel: "その他のページ",
     settings: "設定",
+    back: "戻る",
     hideSidebar: "サイドバーを隠す",
     showSidebar: "サイドバーを表示",
   },
@@ -310,8 +311,6 @@ export default {
       counter: "{n} / {max}",
       counterLabel: "{max} 文字中 {n} 文字",
       todayDate: "今日 · {date}",
-      dateHint: "ここで書いたメモは今日の日付になります。別の日に置くにはカレンダーを使ってください。",
-      dateHintExisting: "このメモを別の日に移すには、カレンダーを使ってください。",
       move: "別の日に移動",
       moved: "{date} に移動しました。",
       tags: "タグ",
@@ -389,6 +388,15 @@ export default {
   settings: {
     title: "設定",
     subtitle: "Irontion を自分らしく",
+    sections: {
+      appearance: "外観",
+      blocks: "ブロック",
+      animations: "アニメーション",
+      notes: "メモ",
+      region: "言語と地域",
+      data: "データ",
+      about: "情報",
+    },
     appearance: {
       title: "外観",
       description: "テーマを選ぶか、OS の設定に合わせます。",

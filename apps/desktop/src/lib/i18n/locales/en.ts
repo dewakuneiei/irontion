@@ -15,6 +15,7 @@ export default {
     more: "More",
     moreLabel: "More pages",
     settings: "Settings",
+    back: "Back",
     hideSidebar: "Hide sidebar",
     showSidebar: "Show sidebar",
   },
@@ -309,8 +310,6 @@ export default {
       counter: "{n} of {max}",
       counterLabel: "{n} of {max} characters used",
       todayDate: "Today · {date}",
-      dateHint: "Notes made here belong to today. To put a note on another day, use the Calendar.",
-      dateHintExisting: "To put this note on another day, use the Calendar.",
       move: "Move to another day",
       moved: "Moved to {date}.",
       tags: "Tags",
@@ -388,6 +387,15 @@ export default {
   settings: {
     title: "Settings",
     subtitle: "Make Irontion feel like yours",
+    sections: {
+      appearance: "Appearance",
+      blocks: "Blocks",
+      animations: "Animations",
+      notes: "Notes",
+      region: "Language and region",
+      data: "Data",
+      about: "About",
+    },
     appearance: {
       title: "Appearance",
       description: "Choose a theme, or follow your operating system.",

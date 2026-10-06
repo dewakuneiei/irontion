@@ -45,16 +45,13 @@
   let {
     note,
     date,
-    place,
     onback,
     onmoved,
   }: {
     /** The note to edit, or `null` to write a new one. */
     note: Note | null;
-    /** A new note's day: today on the Notes page, the chosen day on the Calendar. */
+    /** A new note's day: today on the Notes page, the chosen day on the Calendar. "Move to another day" changes it. */
     date: string;
-    /** The Calendar offers "Move to another day"; the Notes page keeps the date fixed. */
-    place: "notes" | "calendar";
     /** Leave the paper. Called once the note is saved (or an empty new paper is dropped). */
     onback: () => void;
     /** The note now belongs to another day (Calendar). */
@@ -428,13 +425,8 @@
         <CalendarDays size={15} class="text-ink-2" aria-hidden="true" />
         {noteDate === today ? t("notes.paper.todayDate", { date: formatDay(noteDate) }) : formatDayLabel(noteDate)}
       </span>
-      {#if place === "calendar"}
-        <DatePicker value={noteDate} label={t("notes.paper.move")} text={t("notes.paper.move")} onchange={move} />
-      {/if}
+      <DatePicker value={noteDate} label={t("notes.paper.move")} text={t("notes.paper.move")} onchange={move} />
     </div>
-    {#if place === "notes"}
-      <p class="text-xs text-muted">{id === null ? t("notes.paper.dateHint") : t("notes.paper.dateHintExisting")}</p>
-    {/if}
   </div>
 
   <!-- The paper: the note's text and its tags, nothing else. -->
