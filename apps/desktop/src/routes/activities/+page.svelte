@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LayoutTemplate from "@lucide/svelte/icons/layout-template";
   import Plus from "@lucide/svelte/icons/plus";
   import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import Shapes from "@lucide/svelte/icons/shapes";
@@ -10,6 +11,7 @@
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import TemplatesModal from "$lib/components/templates/TemplatesModal.svelte";
   import { SLOT_MINUTES } from "$lib/domain/time";
   import { subtreeIds } from "$lib/domain/tree";
   import { formatMinutes, i18n, t } from "$lib/i18n/index.svelte";
@@ -27,6 +29,7 @@
   let formTarget = $state<ActivityFormTarget | null>(null);
   let confirmation = $state<Confirmation | null>(null);
   let showArchived = $state(false);
+  let templatesOpen = $state(false);
 
   async function ask(kind: Confirmation["kind"], id: number) {
     const activity = catalog.byId.get(id);
@@ -49,6 +52,10 @@
 
 <PageHeader title={t("activities.title")} subtitle={t("activities.subtitle")}>
   {#snippet actions()}
+    <Button onclick={() => (templatesOpen = true)}>
+      <LayoutTemplate size={16} />
+      {t("templates.button")}
+    </Button>
     {#if catalog.activities.length > 0}
       <Button variant="primary" onclick={() => (formTarget = { kind: "new", parentId: null })}>
         <Plus size={16} />
@@ -63,10 +70,16 @@
     {#if catalog.loaded && catalog.activities.length === 0}
       <EmptyState icon={Shapes} title={t("activities.empty.title")} body={t("activities.empty.body")}>
         {#snippet action()}
-          <Button variant="primary" onclick={() => (formTarget = { kind: "new", parentId: null })}>
-            <Plus size={16} />
-            {t("activities.empty.action")}
-          </Button>
+          <div class="flex flex-wrap justify-center gap-2">
+            <Button variant="primary" onclick={() => (templatesOpen = true)}>
+              <LayoutTemplate size={16} />
+              {t("templates.startFrom")}
+            </Button>
+            <Button onclick={() => (formTarget = { kind: "new", parentId: null })}>
+              <Plus size={16} />
+              {t("activities.empty.action")}
+            </Button>
+          </div>
         {/snippet}
       </EmptyState>
     {:else}
@@ -118,6 +131,10 @@
 
   <TagPanel />
 </div>
+
+{#if templatesOpen}
+  <TemplatesModal onclose={() => (templatesOpen = false)} />
+{/if}
 
 {#if formTarget}
   {#key formTarget}

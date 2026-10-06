@@ -19,7 +19,7 @@ status: in-development
 > - **Look:** Light, Dark or follow the OS; user-chosen accent color; square or circle blocks; date format, week start and 12/24-hour time. See [[F003]]
 > - **Layout:** Responsive from 390px to wide screens; the sidebar can be folded away. See [[F004]]
 
-Related features: [[F001]] [[F002]] [[F003]] [[F004]]
+Related features: [[F001]] [[F002]] [[F003]] [[F004]] [[F005]]
 
 ## Platform Roadmap
 

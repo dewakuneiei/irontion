@@ -13,13 +13,20 @@
     /** Defaults to open, so a parent can simply mount the modal with `{#if}`. */
     open?: boolean;
     title: string;
-    width?: "sm" | "md";
+    width?: "sm" | "md" | "lg";
     children: Snippet;
     footer?: Snippet;
     /** Shown to the right of the title. */
     actions?: Snippet;
     onclose?: () => void;
   } = $props();
+
+  /** Never wider than the window, however wide the dialog wants to be. */
+  const WIDTHS = {
+    sm: "max-w-[min(28rem,calc(100vw-1.5rem))]",
+    md: "max-w-[min(32rem,calc(100vw-1.5rem))]",
+    lg: "max-w-[min(46rem,calc(100vw-1.5rem))]",
+  };
 
   let dialog: HTMLDialogElement;
 
@@ -41,10 +48,9 @@
     onclose?.();
   }}
   onclick={closeOnBackdrop}
-  class="modal m-auto max-h-[calc(100dvh-1.5rem)] w-full overflow-y-auto rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl {width ===
-  'sm'
-    ? 'max-w-[min(28rem,calc(100vw-1.5rem))]'
-    : 'max-w-[min(32rem,calc(100vw-1.5rem))]'}"
+  class="modal m-auto max-h-[calc(100dvh-1.5rem)] w-full overflow-y-auto rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl {WIDTHS[
+    width
+  ]}"
   aria-labelledby="modal-title"
 >
   {#if open}

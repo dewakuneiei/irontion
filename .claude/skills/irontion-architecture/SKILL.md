@@ -51,6 +51,7 @@ Invariants (enforced in core, covered by tests):
 - New blocks may only use an **active leaf** activity (no non-archived children). Moving or resizing a block that is already on the day keeps its activity even if it is no longer a leaf or is archived.
 - Archiving hides an activity and its subtree from pickers; blocks and summaries keep them. Restore brings back the subtree and any archived ancestors. Permanent delete removes the subtree and its blocks.
 - All writes for one user action happen in one transaction (`apply_day_changes` takes the whole diff).
+- Adding a tree of activities (a template) is one transaction in `activity_tree.rs`: nodes match existing activities by name among siblings (ignoring case, skipping archived), existing ones are kept (or recolored when asked) and never duplicated, and any invalid node adds nothing. Templates themselves are system data in `src/lib/templates/data.ts`, never in the database; core knows only "a tree of activities".
 
 ## Data flow for one user action (painting cells)
 

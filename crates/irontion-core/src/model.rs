@@ -60,6 +60,37 @@ pub struct DayChange {
 /// The 144 cells of one day, in order. `None` = empty.
 pub type DaySlots = Vec<Option<ActivityId>>;
 
+/// An activity to add, with the sub-activities that go inside it.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TreeNode {
+    pub name: String,
+    /// `None` = inherit the parent's color (not allowed at the top level).
+    pub color: Option<String>,
+    #[serde(default)]
+    pub children: Vec<TreeNode>,
+}
+
+/// One node of a tree, in display order, and whether an activity with that name is already there.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TreePlanItem {
+    /// Names from the top level down to this node.
+    pub path: Vec<String>,
+    pub exists: bool,
+}
+
+/// What adding a tree did.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TreeReport {
+    pub created: usize,
+    /// Existing activities whose color was overwritten.
+    pub recolored: usize,
+    /// Existing activities left exactly as they were.
+    pub kept: usize,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivityTotal {

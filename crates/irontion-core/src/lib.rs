@@ -4,6 +4,7 @@
 //! connection so they run the same against a file or an in-memory database.
 
 pub mod activities;
+pub mod activity_tree;
 pub mod blocks;
 pub mod db;
 mod error;

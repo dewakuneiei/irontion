@@ -11,6 +11,9 @@ import type {
   NewActivity,
   Tag,
   TagInput,
+  TreeNode,
+  TreePlanItem,
+  TreeReport,
 } from "./types";
 
 /** Calls the Rust commands in `src-tauri/src/commands.rs`. The only place that uses `invoke`. */
@@ -33,6 +36,10 @@ export class TauriBackend implements Backend {
   restoreActivity = (id: number) => this.call<void>("restore_activity", { id });
   deleteActivity = (id: number) => this.call<void>("delete_activity", { id });
   activityBlockCount = (id: number) => this.call<number>("activity_block_count", { id });
+
+  planActivityTree = (nodes: TreeNode[]) => this.call<TreePlanItem[]>("plan_activity_tree", { nodes });
+  importActivityTree = (nodes: TreeNode[], overwrite: string[][]) =>
+    this.call<TreeReport>("import_activity_tree", { nodes, overwrite });
 
   listTags = () => this.call<Tag[]>("list_tags");
   createTag = (input: TagInput) => this.call<Tag>("create_tag", { input });

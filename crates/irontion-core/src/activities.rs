@@ -72,36 +72,54 @@ pub fn get(conn: &Connection, id: ActivityId) -> Result<Activity> {
 }
 
 pub fn create(conn: &mut Connection, input: NewActivity) -> Result<Activity> {
+    let tx = conn.transaction()?;
+    let created = create_in(&tx, input)?;
+    tx.commit()?;
+    Ok(created)
+}
+
+/// Create an activity inside a transaction the caller already holds, so several
+/// creations can succeed or fail together.
+pub(crate) fn create_in(conn: &Connection, input: NewActivity) -> Result<Activity> {
     let name = validate::name(&input.name)?;
     let color = validate::optional_color(input.color.as_deref())?;
-    let tx = conn.transaction()?;
 
     match input.parent_id {
         None if color.is_none() => return Err(Error::ColorRequired),
         None => {}
         Some(parent_id) => {
-            if get(&tx, parent_id)?.archived {
+            if get(conn, parent_id)?.archived {
                 return Err(Error::Archived);
             }
-            if depth(&tx, parent_id)? >= MAX_DEPTH {
+            if depth(conn, parent_id)? >= MAX_DEPTH {
                 return Err(Error::TooDeep);
             }
         }
     }
 
-    let position: i64 = tx.query_row(
+    let position: i64 = conn.query_row(
         "SELECT COALESCE(MAX(position) + 1, 0) FROM activities WHERE parent_id IS ?1",
         [input.parent_id],
         |r| r.get(0),
     )?;
-    tx.execute(
+    conn.execute(
         "INSERT INTO activities (parent_id, name, color, position) VALUES (?1, ?2, ?3, ?4)",
         params![input.parent_id, name, color, position],
     )?;
-    let id = tx.last_insert_rowid();
-    set_tags(&tx, id, &input.tag_ids)?;
-    tx.commit()?;
+    let id = conn.last_insert_rowid();
+    set_tags(conn, id, &input.tag_ids)?;
     get(conn, id)
+}
+
+/// Change only an activity's color. `None` means "inherit the parent's", which a top-level
+/// activity can't do.
+pub(crate) fn set_color(conn: &Connection, id: ActivityId, color: Option<&str>) -> Result<()> {
+    let color = validate::optional_color(color)?;
+    if get(conn, id)?.parent_id.is_none() && color.is_none() {
+        return Err(Error::ColorRequired);
+    }
+    conn.execute("UPDATE activities SET color = ?2 WHERE id = ?1", params![id, color])?;
+    Ok(())
 }
 
 pub fn update(conn: &mut Connection, id: ActivityId, patch: ActivityPatch) -> Result<Activity> {

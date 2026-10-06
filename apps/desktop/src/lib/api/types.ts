@@ -35,6 +35,29 @@ export interface TagInput {
   color: string | null;
 }
 
+/** An activity to add, with the sub-activities that go inside it. */
+export interface TreeNode {
+  name: string;
+  /** `null` = inherit the parent's color (not allowed at the top level). */
+  color: string | null;
+  children: TreeNode[];
+}
+
+/** One node in display order, and whether an activity with that name is already there. */
+export interface TreePlanItem {
+  /** Names from the top level down to this node. */
+  path: string[];
+  exists: boolean;
+}
+
+export interface TreeReport {
+  created: number;
+  /** Existing activities whose color was overwritten. */
+  recolored: number;
+  /** Existing activities left exactly as they were. */
+  kept: number;
+}
+
 /** One cell edit. `activityId: null` clears the cell. */
 export interface DayChange {
   slot: number;

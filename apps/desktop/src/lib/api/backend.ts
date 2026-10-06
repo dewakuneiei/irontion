@@ -10,6 +10,9 @@ import type {
   NewActivity,
   Tag,
   TagInput,
+  TreeNode,
+  TreePlanItem,
+  TreeReport,
 } from "./types";
 
 /**
@@ -26,6 +29,11 @@ export interface Backend {
   restoreActivity(id: number): Promise<void>;
   deleteActivity(id: number): Promise<void>;
   activityBlockCount(id: number): Promise<number>;
+
+  /** Which nodes of a tree already exist (same name among siblings). Changes nothing. */
+  planActivityTree(nodes: TreeNode[]): Promise<TreePlanItem[]>;
+  /** Add a tree in one step. Existing nodes are kept, or recolored when their path is in `overwrite`. */
+  importActivityTree(nodes: TreeNode[], overwrite: string[][]): Promise<TreeReport>;
 
   listTags(): Promise<Tag[]>;
   createTag(input: TagInput): Promise<Tag>;

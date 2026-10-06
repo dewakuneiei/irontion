@@ -5,10 +5,10 @@ use std::sync::Mutex;
 
 use irontion_core::model::{
     Activity, ActivityId, ActivityPatch, ActivityTotal, DailyTotal, DayChange, DaySlots, NewActivity, Tag, TagId,
-    TagInput,
+    TagInput, TreeNode, TreePlanItem, TreeReport,
 };
 use irontion_core::Connection;
-use irontion_core::{activities, blocks, summary, tags};
+use irontion_core::{activities, activity_tree, blocks, summary, tags};
 use serde::Serialize;
 use tauri::State;
 
@@ -73,6 +73,20 @@ pub async fn delete_activity(db: State<'_, Db>, id: ActivityId) -> CmdResult<()>
 #[tauri::command]
 pub async fn activity_block_count(db: State<'_, Db>, id: ActivityId) -> CmdResult<i64> {
     with_db(&db, |c| activities::block_count(c, id))
+}
+
+#[tauri::command]
+pub async fn plan_activity_tree(db: State<'_, Db>, nodes: Vec<TreeNode>) -> CmdResult<Vec<TreePlanItem>> {
+    with_db(&db, |c| activity_tree::plan(c, &nodes))
+}
+
+#[tauri::command]
+pub async fn import_activity_tree(
+    db: State<'_, Db>,
+    nodes: Vec<TreeNode>,
+    overwrite: Vec<Vec<String>>,
+) -> CmdResult<TreeReport> {
+    with_db(&db, |c| activity_tree::apply(c, &nodes, &overwrite))
 }
 
 #[tauri::command]

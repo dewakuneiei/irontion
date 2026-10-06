@@ -1,5 +1,14 @@
 import { getBackend } from "$lib/api/backend";
-import type { Activity, ActivityPatch, NewActivity, Tag, TagInput } from "$lib/api/types";
+import type {
+  Activity,
+  ActivityPatch,
+  NewActivity,
+  Tag,
+  TagInput,
+  TreeNode,
+  TreePlanItem,
+  TreeReport,
+} from "$lib/api/types";
 import { buildTree, effectiveColor, effectiveTagIds, flatten, indexById, isAssignable, pathOf } from "$lib/domain/tree";
 
 /**
@@ -81,6 +90,18 @@ class CatalogStore {
   async deleteActivity(id: number) {
     await (await getBackend()).deleteActivity(id);
     await this.reload();
+  }
+
+  /** Which nodes of this tree already exist among the user's activities. */
+  async planTree(nodes: TreeNode[]): Promise<TreePlanItem[]> {
+    return (await getBackend()).planActivityTree(nodes);
+  }
+
+  /** Add a tree (a template) in one step, then reload once. */
+  async importTree(nodes: TreeNode[], overwrite: string[][]): Promise<TreeReport> {
+    const report = await (await getBackend()).importActivityTree(nodes, overwrite);
+    await this.reload();
+    return report;
   }
 
   async blockCount(id: number): Promise<number> {

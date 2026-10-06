@@ -33,6 +33,8 @@ fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) -> bool + Send + Sync + 'static 
         commands::restore_activity,
         commands::delete_activity,
         commands::activity_block_count,
+        commands::plan_activity_tree,
+        commands::import_activity_tree,
         commands::list_tags,
         commands::create_tag,
         commands::update_tag,
@@ -142,6 +144,73 @@ mod tests {
 
         let err = call(&w, "create_tag", json!({ "input": { "name": "", "color": null } })).unwrap_err();
         assert_eq!(err["kind"], json!("invalidName"));
+    }
+
+    #[test]
+    fn a_template_is_planned_and_added_without_overlap_over_ipc() {
+        let (_app, w) = app();
+        call(
+            &w,
+            "create_activity",
+            json!({ "input": { "parentId": null, "name": "Study", "color": "#123456", "tagIds": [] } }),
+        )
+        .unwrap();
+        let tree = json!([
+            { "name": "study", "color": "#2a78d6", "children": [{ "name": "Math", "color": null, "children": [] }] },
+            { "name": "Rest", "color": "#eda100", "children": [] }
+        ]);
+
+        // The plan says which already exist (same name, ignoring case), and changes nothing.
+        let plan = call(&w, "plan_activity_tree", json!({ "nodes": tree })).unwrap();
+        assert_eq!(
+            plan,
+            json!([
+                { "path": ["study"], "exists": true },
+                { "path": ["study", "Math"], "exists": false },
+                { "path": ["Rest"], "exists": false }
+            ])
+        );
+        assert_eq!(
+            call(&w, "list_activities", json!({}))
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+
+        // Adding keeps the existing one, adds the rest, and reports it.
+        let report = call(&w, "import_activity_tree", json!({ "nodes": tree, "overwrite": [] })).unwrap();
+        assert_eq!(report, json!({ "created": 2, "recolored": 0, "kept": 1 }));
+        let all = call(&w, "list_activities", json!({})).unwrap();
+        assert_eq!(all.as_array().unwrap().len(), 3);
+        assert_eq!(all[0]["color"], json!("#123456"), "the user's own color is kept");
+
+        // Choosing to overwrite recolors just that one.
+        let report = call(
+            &w,
+            "import_activity_tree",
+            json!({ "nodes": tree, "overwrite": [["study"]] }),
+        )
+        .unwrap();
+        assert_eq!(report, json!({ "created": 0, "recolored": 1, "kept": 2 }));
+        assert_eq!(
+            call(&w, "list_activities", json!({})).unwrap()[0]["color"],
+            json!("#2a78d6")
+        );
+
+        // A bad tree is refused with a stable error kind and adds nothing.
+        let bad = json!([{ "name": "Fine", "color": "#2a78d6", "children": [] }, { "name": "No color", "color": null, "children": [] }]);
+        let err = call(&w, "import_activity_tree", json!({ "nodes": bad, "overwrite": [] })).unwrap_err();
+        assert_eq!(err["kind"], json!("colorRequired"));
+        assert_eq!(
+            call(&w, "list_activities", json!({}))
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            3
+        );
     }
 
     #[test]

@@ -103,6 +103,7 @@ src/
 │   ├── domain/         # Pure logic: slots, tree, time, stats, colors (unit-tested)
 │   ├── components/     # UI: blocks/, activities/, settings/, Sidebar, Modal, Button, Chart, ...
 │   ├── charts/         # ECharts setup, theme-aware palette, shared chart builders
+│   ├── templates/      # The 12 built-in activity templates (system data, F005)
 │   ├── i18n/           # Translations (en, th, zh-CN, ja, ko) and t()
 │   ├── theme.svelte.ts       # Light / Dark / System theme (F003)
 │   ├── preferences.svelte.ts # Accent color and block shape (F003)

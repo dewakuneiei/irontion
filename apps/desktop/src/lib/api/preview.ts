@@ -16,6 +16,9 @@ import type {
   NewActivity,
   Tag,
   TagInput,
+  TreeNode,
+  TreePlanItem,
+  TreeReport,
 } from "./types";
 
 const MAX_NAME_LEN = 60;
@@ -51,6 +54,11 @@ export class PreviewBackend implements Backend {
   }
 
   async createActivity(input: NewActivity) {
+    return structuredClone(this.insert(input));
+  }
+
+  /** Validate and add one activity. Shared by `createActivity` and tree imports. */
+  private insert(input: NewActivity): Activity {
     const name = checkName(input.name);
     const color = checkColor(input.color);
     if (input.parentId === null) {
@@ -72,7 +80,7 @@ export class PreviewBackend implements Backend {
       tagIds: [...new Set(input.tagIds)].sort((a, b) => a - b),
     };
     this.activities.push(activity);
-    return structuredClone(activity);
+    return activity;
   }
 
   async updateActivity(id: number, patch: ActivityPatch) {
@@ -114,6 +122,59 @@ export class PreviewBackend implements Backend {
     let count = 0;
     for (const slots of this.days.values()) count += slots.filter((s) => s !== null && ids.has(s)).length;
     return count;
+  }
+
+  // ---------- Activity trees (templates) ----------
+
+  async planActivityTree(nodes: TreeNode[]): Promise<TreePlanItem[]> {
+    const items: TreePlanItem[] = [];
+    // `scope`: a parent id, `null` for the top level, or `undefined` under a parent that is new.
+    const walk = (scope: number | null | undefined, level: TreeNode[], path: string[]) => {
+      for (const node of level) {
+        const match = scope === undefined ? undefined : this.sibling(scope, checkName(node.name));
+        const here = [...path, node.name];
+        items.push({ path: here, exists: match !== undefined });
+        walk(match?.id, node.children, here);
+      }
+    };
+    walk(null, nodes, []);
+    return items;
+  }
+
+  async importActivityTree(nodes: TreeNode[], overwrite: string[][]): Promise<TreeReport> {
+    const report: TreeReport = { created: 0, recolored: 0, kept: 0 };
+    const before = { activities: structuredClone(this.activities), nextId: this.nextId };
+    const add = (parentId: number | null, level: TreeNode[], path: string[]) => {
+      for (const node of level) {
+        const name = checkName(node.name);
+        const here = [...path, node.name];
+        const match = this.sibling(parentId, name);
+        let id: number;
+        if (!match) {
+          id = this.insert({ parentId, name, color: node.color, tagIds: [] }).id;
+          report.created++;
+        } else if (overwrite.some((p) => p.length === here.length && p.every((n, i) => n === here[i]))) {
+          const color = checkColor(node.color);
+          if (match.parentId === null && color === null) fail("colorRequired");
+          match.color = color;
+          report.recolored++;
+          id = match.id;
+        } else {
+          report.kept++;
+          id = match.id;
+        }
+        add(id, node.children, here);
+      }
+    };
+    try {
+      add(null, nodes, []);
+    } catch (err) {
+      // All or nothing, like the real transaction.
+      this.activities = before.activities;
+      this.nextId = before.nextId;
+      throw err;
+    }
+    return report;
   }
 
   // ---------- Tags ----------
@@ -180,6 +241,15 @@ export class PreviewBackend implements Backend {
   }
 
   // ---------- Helpers ----------
+
+  /** The first active activity under `parentId` with this name, ignoring case. */
+  private sibling(parentId: number | null, name: string): Activity | undefined {
+    const wanted = name.trim().toLowerCase();
+    return this.activities
+      .filter((a) => a.parentId === parentId && !a.archived)
+      .sort((a, b) => a.position - b.position || a.id - b.id)
+      .find((a) => a.name.trim().toLowerCase() === wanted);
+  }
 
   private activity(id: number): Activity {
     return this.activities.find((a) => a.id === id) ?? fail("notFound");
