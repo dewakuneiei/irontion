@@ -22,3 +22,11 @@ pnpm app     # real desktop window (needs the Tauri system libraries)
 ```
 
 Full details are in [apps/desktop/README.md](apps/desktop/README.md#run-without-installing-linux).
+
+## License
+
+Irontion is licensed under the [Apache License 2.0](LICENSE): free to use for anything. The [NOTICE](NOTICE) file adds one request that comes with it: **give credit** to the creator, **dewakuneiei** (<https://github.com/dewakuneiei>), and link to this repository, <https://github.com/dewakuneiei/irontion>.
+
+If you build on Irontion, add a line like this where people will see it (an About screen, your README or your website):
+
+> Based on Irontion by dewakuneiei (https://github.com/dewakuneiei) - https://github.com/dewakuneiei/irontion

@@ -15,7 +15,7 @@
     "app:build": "node scripts/with-clean-env.mjs tauri build",
     "test": "vitest run"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/noto-sans-thai": "^5.3.0",
@@ -38,5 +38,11 @@
     "vite": "^8.0.16",
     "vitest": "^5.0.3"
   },
-  "private": true
+  "private": true,
+  "author": "dewakuneiei (https://github.com/dewakuneiei)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dewakuneiei/irontion.git"
+  },
+  "homepage": "https://github.com/dewakuneiei/irontion"
 }

@@ -3,6 +3,9 @@ name = "irontion-core"
 version = "0.1.0"
 edition = "2024"
 description = "Irontion business logic and SQLite storage, shared by every app"
+authors = ["dewakuneiei"]
+repository = "https://github.com/dewakuneiei/irontion"
+license = "Apache-2.0"
 publish = false
 
 [dependencies]
