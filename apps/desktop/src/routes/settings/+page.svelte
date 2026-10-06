@@ -1,16 +1,23 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import { layout } from "$lib/layout.svelte";
   import { t } from "$lib/i18n/index.svelte";
   import { SETTINGS_ITEMS } from "$lib/nav";
+
+  // Where the sidebar lists the sections, Settings opens on the first one.
+  $effect(() => {
+    if (layout.wide) void goto("/settings/appearance", { replaceState: true });
+  });
 </script>
 
+{#if !layout.wide}
 <header class="mb-8">
   <h1 class="text-3xl font-semibold tracking-tight">{t("settings.title")}</h1>
   <p class="mt-1 text-ink-2">{t("settings.subtitle")}</p>
 </header>
 
-<!-- The sections, as a list. On wide windows the sidebar lists the same sections. -->
+<!-- Narrow windows have no inline sidebar, so the sections are a list here. -->
 <ul class="flex flex-col gap-2">
   {#each SETTINGS_ITEMS as item (item.href)}
     <li>
@@ -26,3 +33,4 @@
     </li>
   {/each}
 </ul>
+{/if}

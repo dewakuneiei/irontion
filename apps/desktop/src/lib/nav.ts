@@ -43,9 +43,9 @@ export const SIDEBAR_FOOTER: NavItem = settings;
  */
 export interface NavContext {
   id: string;
-  /** Shown above the items when the context has a back button. */
+  /** Names the list for screen readers. */
   title?: MessageKey;
-  /** Leaves the context. It returns to the page the user came from, or to `href` when unknown. */
+  /** Replaces the footer: leaves the context for the page the user came from. */
   back?: { label: MessageKey; href: string };
   items: readonly NavItem[];
   footer?: NavItem;

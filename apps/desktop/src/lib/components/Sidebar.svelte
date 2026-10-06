@@ -54,25 +54,24 @@
   </div>
 
   <nav class="flex flex-1 flex-col gap-0.5" aria-label={context.title ? t(context.title) : undefined}>
+    {#each context.items as item (item.href)}
+      {@render sideLink(item)}
+    {/each}
+    <div class="flex-1"></div>
     {#if context.back}
+      <!-- Where Settings sits in the main sidebar: the way out of this context. -->
       <button
         type="button"
-        class="mb-1 flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-surface-hover hover:text-ink"
+        class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-surface-hover hover:text-ink"
         onclick={leave}
         data-nav-back
       >
         <ArrowLeft size={18} strokeWidth={2} />
         <span>{t(context.back.label)}</span>
       </button>
+    {:else if context.footer}
+      {@render sideLink(context.footer)}
     {/if}
-    {#if context.title}
-      <h2 class="mb-1 px-3 text-lg font-semibold tracking-tight">{t(context.title)}</h2>
-    {/if}
-    {#each context.items as item (item.href)}
-      {@render sideLink(item)}
-    {/each}
-    <div class="flex-1"></div>
-    {#if context.footer}{@render sideLink(context.footer)}{/if}
   </nav>
 </aside>
 
