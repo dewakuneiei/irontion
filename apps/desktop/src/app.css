@@ -261,6 +261,16 @@ html.theme-switching * {
   outline: none;
 }
 
+/* Settings → Animations off: nothing moves, everything still ends where it would have. */
+:root[data-animations="off"] *,
+:root[data-animations="off"] *::before,
+:root[data-animations="off"] *::after {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

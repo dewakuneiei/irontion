@@ -289,10 +289,8 @@ export default {
       pinned: "고정됨",
       others: "기타",
       tags: "태그",
-      handle: "메모 옮기기: {text}",
-      handleHint: "끌어서 옮겨요. 포커스를 두고 화살표 키로도 옮길 수 있어요.",
       moved: "{total}개 중 {n}번째로 옮겼어요.",
-      dragHint: "손잡이를 끌어서 원하는 자리에 놓아요.",
+      dragHint: "메모를 누른 채 끌어서 옮기세요.",
     },
     card: {
       open: "메모 열기: {text}",
@@ -429,6 +427,11 @@ export default {
       down: "위에서 아래로",
       right: "왼쪽에서 오른쪽으로",
       left: "오른쪽에서 왼쪽으로",
+    },
+    animations: {
+      title: "애니메이션",
+      description: "앱 전체의 움직임.",
+      allTitle: "애니메이션 사용",
       waveTitle: "물결 애니메이션",
       waveHint: "채워지는 블록의 수면이 부드럽게 일렁여요.",
     },

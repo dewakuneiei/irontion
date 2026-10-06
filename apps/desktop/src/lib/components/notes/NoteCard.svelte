@@ -1,7 +1,6 @@
 <script lang="ts">
   import Bell from "@lucide/svelte/icons/bell";
   import CalendarDays from "@lucide/svelte/icons/calendar-days";
-  import GripVertical from "@lucide/svelte/icons/grip-vertical";
   import Pin from "@lucide/svelte/icons/pin";
   import type { Note } from "$lib/api/types";
   import TagChip from "$lib/components/TagChip.svelte";
@@ -13,16 +12,16 @@
 
   /**
    * One note on paper, as tall as its text needs. The body opens the note: a link on the Notes
-   * page (`href`), a button in the Calendar's day panel (`onopen`). The grip (to drag the note
-   * to another place on the board) and the pin sit on the paper's top edge.
+   * page (`href`), a button in the Calendar's day panel (`onopen`). On the board the whole card
+   * is the drag handle (`onpress`); the pin sits on the paper's top edge.
    */
   let {
     note,
     href,
     onopen,
     onpin,
-    onhandle,
-    onhandlekey,
+    onpress,
+    onmovekey,
     dragging = false,
     target = false,
   }: {
@@ -31,9 +30,10 @@
     onopen?: () => void;
     /** Shows the pin button. */
     onpin?: () => void;
-    /** Shows the grip. Called when a drag starts from it. */
-    onhandle?: (event: PointerEvent) => void;
-    onhandlekey?: (event: KeyboardEvent) => void;
+    /** The card can be dragged: called when the pointer goes down on it. */
+    onpress?: (event: PointerEvent) => void;
+    /** The card can be moved with the keyboard: called on every key pressed in it. */
+    onmovekey?: (event: KeyboardEvent) => void;
     /** This card is being dragged. */
     dragging?: boolean;
     /** A dragged card would land here. */
@@ -46,31 +46,22 @@
   const bodyClass = "flex min-w-0 flex-1 flex-col gap-3 text-left outline-offset-4";
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <article
-  class="group paper paper-sheet paper-ruled paper-tape relative flex flex-col transition-shadow {dragging
-    ? 'opacity-90 shadow-2xl'
-    : ''} {target ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg' : ''}"
+  class="group paper paper-sheet paper-ruled paper-tape relative flex flex-col transition-[box-shadow,scale] duration-200 {onpress
+    ? 'select-none [-webkit-touch-callout:none]'
+    : ''} {dragging ? 'scale-[1.03] cursor-grabbing opacity-95 shadow-2xl' : ''} {target
+    ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg'
+    : ''}"
   style:--note={noteColorCss(note.color)}
   data-note={note.id}
   data-pinned={note.pinned || undefined}
+  aria-keyshortcuts={onmovekey ? "Alt+Shift+ArrowUp Alt+Shift+ArrowDown Alt+Shift+ArrowLeft Alt+Shift+ArrowRight" : undefined}
+  onpointerdown={onpress}
+  onkeydown={onmovekey}
 >
   <!-- On the top edge, between the two pieces of tape. Always there on touch, else on hover or focus. -->
-  <div class="pointer-events-none absolute inset-x-12 top-[0.45rem] z-10 flex items-center justify-between">
-    <div class="pointer-events-auto">
-      {#if onhandle}
-        <button
-          type="button"
-          class="grid h-6 w-8 touch-none place-items-center rounded-md text-ink-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-surface/70 [@media(hover:none)]:opacity-100 {dragging ? 'cursor-grabbing opacity-100' : 'cursor-grab'}"
-          aria-label={t("notes.board.handle", { text: note.text })}
-          title={t("notes.board.handleHint")}
-          data-handle={note.id}
-          onpointerdown={onhandle}
-          onkeydown={onhandlekey}
-        >
-          <GripVertical size={15} class="rotate-90" aria-hidden="true" />
-        </button>
-      {/if}
-    </div>
+  <div class="pointer-events-none absolute inset-x-12 top-[0.45rem] z-10 flex items-center justify-end">
     <div class="pointer-events-auto">
       {#if onpin}
         <button
@@ -121,7 +112,7 @@
   {/snippet}
 
   {#if href}
-    <a {href} class={bodyClass} aria-label={label}>{@render body()}</a>
+    <a {href} class={bodyClass} aria-label={label} draggable="false">{@render body()}</a>
   {:else}
     <button type="button" class={bodyClass} aria-label={label} onclick={onopen}>{@render body()}</button>
   {/if}

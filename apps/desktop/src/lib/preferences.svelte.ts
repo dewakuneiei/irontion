@@ -26,6 +26,7 @@ export const NOTE_PAPERS: NotePaper[] = ["lined", "plain"];
 const SHAPE_KEY = "irontion.cellShape";
 const PAPER_KEY = "irontion.notePaper";
 const FILL_KEY = "irontion.fillDirection";
+const ANIMATIONS_KEY = "irontion.animations";
 const FILL_ANIMATION_KEY = "irontion.fillAnimation";
 const DATE_FORMAT_KEY = "irontion.dateFormat";
 const WEEK_START_KEY = "irontion.weekStart";
@@ -75,6 +76,19 @@ class PreferencesState {
 
   /** A gentle water wave on the surface of the filling block. */
   fillAnimation = $state(read(FILL_ANIMATION_KEY) !== "off");
+
+  /** Motion across the app. Off stops every transition and animation (see `app.css`). */
+  animations = $state(read(ANIMATIONS_KEY) !== "off");
+
+  /** Whether code-driven motion (the board's moves) may play: the setting, and the OS's "reduce motion". */
+  get motion(): boolean {
+    return this.animations && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  setAnimations(on: boolean) {
+    this.animations = on;
+    write(ANIMATIONS_KEY, on ? "on" : "off");
+  }
 
   setFillAnimation(on: boolean) {
     this.fillAnimation = on;
@@ -131,6 +145,7 @@ class PreferencesState {
     const vars = accentVars(this.accent, theme);
     root.dataset.cellShape = this.cellShape;
     root.dataset.notePaper = this.notePaper;
+    root.dataset.animations = this.animations ? "on" : "off";
     root.style.setProperty("--accent", vars.accent);
     root.style.setProperty("--accent-soft", vars.soft);
     root.style.setProperty("--accent-ink", vars.ink);

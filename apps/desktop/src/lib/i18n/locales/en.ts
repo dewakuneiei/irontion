@@ -288,10 +288,8 @@ export default {
       pinned: "Pinned",
       others: "Others",
       tags: "Tags",
-      handle: "Move note: {text}",
-      handleHint: "Drag to move. With this focused, use the arrow keys.",
       moved: "Moved to place {n} of {total}.",
-      dragHint: "Drag a note by its grip to put it where you want.",
+      dragHint: "Hold a note and drag it to move it.",
     },
     card: {
       open: "Open note: {text}",
@@ -428,6 +426,11 @@ export default {
       down: "Top to bottom",
       right: "Left to right",
       left: "Right to left",
+    },
+    animations: {
+      title: "Animations",
+      description: "Motion across the app.",
+      allTitle: "Play animations",
       waveTitle: "Water wave animation",
       waveHint: "A gentle wave moves along the surface of the filling block.",
     },

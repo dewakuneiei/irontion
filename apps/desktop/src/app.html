@@ -23,6 +23,7 @@
             root.style.setProperty("--accent-ink", accent.ink);
           }
           root.dataset.cellShape = localStorage.getItem("irontion.cellShape") || "square";
+          root.dataset.animations = localStorage.getItem("irontion.animations") === "off" ? "off" : "on";
         } catch (e) {}
       })();
     </script>

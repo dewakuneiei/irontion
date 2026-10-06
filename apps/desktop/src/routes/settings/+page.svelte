@@ -7,6 +7,7 @@
   import Info from "@lucide/svelte/icons/info";
   import Languages from "@lucide/svelte/icons/languages";
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import StickyNote from "@lucide/svelte/icons/sticky-note";
   import Timer from "@lucide/svelte/icons/timer";
   import Palette from "@lucide/svelte/icons/palette";
@@ -145,16 +146,37 @@
       </div>
     </div>
     <FillDirectionPicker />
-    <div class="mt-5 flex items-center justify-between gap-4 rounded-xl bg-surface-2 px-4 py-3">
-      <div class="min-w-0">
-        <p class="text-sm font-medium">{t("settings.fill.waveTitle")}</p>
-        <p class="text-[13px] text-muted">{t("settings.fill.waveHint")}</p>
+  </section>
+
+  <!-- Animations -->
+  <section class="rounded-2xl border border-line bg-surface p-6 shadow-card" in:fly={enter(4)}>
+    <div class="mb-5 flex items-start gap-3">
+      <span class="grid size-9 place-items-center rounded-xl bg-accent-soft text-accent"><Sparkles size={18} /></span>
+      <div>
+        <h2 class="font-semibold">{t("settings.animations.title")}</h2>
+        <p class="text-sm text-muted">{t("settings.animations.description")}</p>
       </div>
-      <Toggle
-        checked={preferences.fillAnimation}
-        label={t("settings.fill.waveTitle")}
-        onchange={(on) => preferences.setFillAnimation(on)}
-      />
+    </div>
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between gap-4 rounded-xl bg-surface-2 px-4 py-3">
+        <p class="min-w-0 text-sm font-medium">{t("settings.animations.allTitle")}</p>
+        <Toggle
+          checked={preferences.animations}
+          label={t("settings.animations.allTitle")}
+          onchange={(on) => preferences.setAnimations(on)}
+        />
+      </div>
+      <div class="flex items-center justify-between gap-4 rounded-xl bg-surface-2 px-4 py-3">
+        <div class="min-w-0">
+          <p class="text-sm font-medium">{t("settings.animations.waveTitle")}</p>
+          <p class="text-[13px] text-muted">{t("settings.animations.waveHint")}</p>
+        </div>
+        <Toggle
+          checked={preferences.fillAnimation}
+          label={t("settings.animations.waveTitle")}
+          onchange={(on) => preferences.setFillAnimation(on)}
+        />
+      </div>
     </div>
   </section>
 

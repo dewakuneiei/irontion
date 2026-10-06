@@ -289,10 +289,8 @@ export default {
       pinned: "已置顶",
       others: "其他",
       tags: "标签",
-      handle: "移动便签：{text}",
-      handleHint: "拖动来移动。聚焦后也可用方向键。",
       moved: "已移到第 {n} 位，共 {total} 张。",
-      dragHint: "按住便签的把手拖动，放到想要的位置。",
+      dragHint: "按住便签并拖动即可移动。",
     },
     card: {
       open: "打开便签：{text}",
@@ -429,6 +427,11 @@ export default {
       down: "从上到下",
       right: "从左到右",
       left: "从右到左",
+    },
+    animations: {
+      title: "动画",
+      description: "应用中的动效。",
+      allTitle: "启用动画",
       waveTitle: "水波动画",
       waveHint: "正在填充的时间块表面会有轻柔的波浪。",
     },

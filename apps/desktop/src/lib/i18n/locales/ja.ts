@@ -289,10 +289,8 @@ export default {
       pinned: "ピン留め",
       others: "その他",
       tags: "タグ",
-      handle: "メモを移動：{text}",
-      handleHint: "ドラッグで移動します。フォーカス中は矢印キーでも動かせます。",
       moved: "{total} 件中 {n} 番目に移動しました。",
-      dragHint: "持ち手をドラッグして、好きな場所に置けます。",
+      dragHint: "メモを押したままドラッグして移動します。",
     },
     card: {
       open: "メモを開く：{text}",
@@ -429,6 +427,11 @@ export default {
       down: "上から下",
       right: "左から右",
       left: "右から左",
+    },
+    animations: {
+      title: "アニメーション",
+      description: "アプリ全体の動き。",
+      allTitle: "アニメーションを使う",
       waveTitle: "波のアニメーション",
       waveHint: "塗りつぶし中のブロックの水面がゆるやかに波打ちます。",
     },
