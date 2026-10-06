@@ -179,7 +179,7 @@ The app supports multiple languages from day one. All UI text comes from transla
 | `notes`         | `id`, `text` (max 200 characters), `date` (YYYY-MM-DD, NOT NULL), `color`, `pinned`, `position` (board order), `remind_at`, `reminded_at` (UTC), `created_at`, `updated_at` (UTC). Indexes on `date` and `remind_at`. See [[F006]], [[F008]] |
 | `note_tags`     | `note_id`, `tag_id` (cascade both ways; the same tags as activities, max 5 per note) |
 
-Rules enforced in Rust (and covered by tests): assignment only to active activities (parents included), max 5 levels, archive cascades down, restore brings back parents, permanent delete only after archive. See [[F002]]. Notes: every note has a date (only `move_note` changes it), a color from the palette, a well-formed UTC reminder, trimmed text of 1 to 200 characters without its `#tags`, at most 5 tags with valid names; tags are created in the note's transaction. See [[F006]].
+Rules enforced in Rust (and covered by tests): assignment only to active activities (parents included), max 3 levels, archive cascades down, restore brings back parents, permanent delete only after archive. See [[F002]]. Notes: every note has a date (only `move_note` changes it), a color from the palette, a well-formed UTC reminder, trimmed text of 1 to 200 characters without its `#tags`, at most 5 tags with valid names; tags are created in the note's transaction. See [[F006]].
 
 > [!note]
 > One day = at most 144 rows in `time_blocks`. One year ≈ 52,000 rows, which is very small for SQLite.

@@ -503,7 +503,7 @@ export default {
     colorRequired: "最上位のアクティビティには色が必要です。",
     invalidDate: "日付が正しくありません。",
     invalidSlot: "そのセルは 1 日の範囲外です。",
-    tooDeep: "アクティビティは 5 階層まで入れ子にできます。",
+    tooDeep: "アクティビティは 3 階層まで入れ子にできます。",
     archived: "このアクティビティはアーカイブ済みです。使うには復元してください。",
     notArchived: "完全に削除する前にアーカイブしてください。",
     duplicateTag: "同じ名前のタグがすでにあります。",

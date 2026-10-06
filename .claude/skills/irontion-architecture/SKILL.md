@@ -41,7 +41,7 @@ Pure domain helpers (no I/O, no Svelte) live in `apps/desktop/src/lib/domain/`: 
 
 | Table | Key columns | Notes |
 | ----- | ----------- | ----- |
-| `activities` | `id`, `parent_id`, `name`, `color` (NULL = inherit parent), `position`, `archived_at` | Tree, max depth 5. Archive cascades down the subtree. |
+| `activities` | `id`, `parent_id`, `name`, `color` (NULL = inherit parent), `position`, `archived_at` | Tree, max depth 3. Archive cascades down the subtree. |
 | `tags` | `id`, `name` (unique, case-insensitive), `color` | Flat. |
 | `activity_tags` | `activity_id`, `tag_id` | Many-to-many. Effective tags = own + ancestors' (computed in domain). |
 | `time_blocks` | `date` (YYYY-MM-DD, local), `slot` 0–143, `activity_id` | One row per filled 10-minute cell. Empty cell = no row. |

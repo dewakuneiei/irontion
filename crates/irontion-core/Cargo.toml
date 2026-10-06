@@ -1,6 +1,6 @@
 [package]
 name = "irontion-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "Irontion business logic and SQLite storage, shared by every app"
 authors = ["dewakuneiei"]

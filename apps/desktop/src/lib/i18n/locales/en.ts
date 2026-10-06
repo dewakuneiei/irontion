@@ -502,7 +502,7 @@ export default {
     colorRequired: "Top-level activities need their own color.",
     invalidDate: "That date isn't valid.",
     invalidSlot: "That cell is outside the day.",
-    tooDeep: "Activities can be nested up to 5 levels.",
+    tooDeep: "Activities can be nested up to 3 levels.",
     archived: "This activity is archived. Restore it to use it again.",
     notArchived: "Archive the activity before deleting it forever.",
     duplicateTag: "A tag with this name already exists.",

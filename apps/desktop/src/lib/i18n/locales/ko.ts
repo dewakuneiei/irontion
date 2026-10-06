@@ -503,7 +503,7 @@ export default {
     colorRequired: "최상위 활동에는 자체 색상이 필요해요.",
     invalidDate: "올바른 날짜가 아니에요.",
     invalidSlot: "그 칸은 하루 범위를 벗어나요.",
-    tooDeep: "활동은 최대 5단계까지 중첩할 수 있어요.",
+    tooDeep: "활동은 최대 3단계까지 중첩할 수 있어요.",
     archived: "보관된 활동이에요. 다시 쓰려면 복원하세요.",
     notArchived: "영구 삭제하기 전에 먼저 보관하세요.",
     duplicateTag: "같은 이름의 태그가 이미 있어요.",

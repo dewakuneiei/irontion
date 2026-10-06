@@ -3,7 +3,7 @@
 import type { Activity } from "$lib/api/types";
 
 /** Mirrors `irontion_core::MAX_DEPTH`. */
-export const MAX_DEPTH = 5;
+export const MAX_DEPTH = 3;
 /** Shown when an activity was deleted permanently but is still referenced. */
 export const FALLBACK_COLOR = "#898781";
 

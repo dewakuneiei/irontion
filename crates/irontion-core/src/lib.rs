@@ -21,7 +21,7 @@ pub use rusqlite::Connection;
 /// Ten-minute cells in one day (24 hours x 6).
 pub const SLOTS_PER_DAY: usize = 144;
 /// Deepest allowed activity nesting; a top-level activity is level 1.
-pub const MAX_DEPTH: usize = 5;
+pub const MAX_DEPTH: usize = 3;
 /// Longest activity or tag name, in characters.
 pub const MAX_NAME_LEN: usize = 60;
 /// Longest note, in user-visible characters (grapheme clusters). See `notes::text_len`.

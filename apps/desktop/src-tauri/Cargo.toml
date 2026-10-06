@@ -1,6 +1,6 @@
 [package]
 name = "irontion-desktop"
-version = "0.1.0"
+version = "0.2.0"
 description = "Irontion desktop app"
 authors = ["dewakuneiei"]
 repository = "https://github.com/dewakuneiei/irontion"

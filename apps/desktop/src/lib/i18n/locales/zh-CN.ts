@@ -503,7 +503,7 @@ export default {
     colorRequired: "顶级活动需要有自己的颜色。",
     invalidDate: "日期无效。",
     invalidSlot: "该格子不在当天范围内。",
-    tooDeep: "活动最多可以嵌套 5 层。",
+    tooDeep: "活动最多可以嵌套 3 层。",
     archived: "该活动已归档。恢复后才能再次使用。",
     notArchived: "请先归档该活动，再永久删除。",
     duplicateTag: "已存在同名标签。",
