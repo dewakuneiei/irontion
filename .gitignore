@@ -20,3 +20,4 @@ dist/
 
 # Rust / Tauri
 target/
+apps/desktop/irontion/
