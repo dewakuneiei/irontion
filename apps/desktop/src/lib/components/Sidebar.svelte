@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import PanelLeftClose from "@lucide/svelte/icons/panel-left-close";
@@ -11,11 +10,6 @@
 
   const context = $derived(contextFor(page.url.pathname));
   const isActive = (item: NavItem) => isNavActive(item, page.url.pathname);
-
-  function leave() {
-    layout.afterNavigate();
-    void goto(layout.lastApp);
-  }
 </script>
 
 <!-- Drawer backdrop: only when the sidebar slides over narrow windows. -->
@@ -60,15 +54,15 @@
     <div class="flex-1"></div>
     {#if context.back}
       <!-- Where Settings sits in the main sidebar: the way out of this context. -->
-      <button
-        type="button"
+      <a
+        href={layout.lastApp}
+        onclick={() => layout.afterNavigate()}
         class="flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 transition-colors hover:bg-surface-hover hover:text-ink"
-        onclick={leave}
         data-nav-back
       >
         <ArrowLeft size={18} strokeWidth={2} />
         <span>{t(context.back.label)}</span>
-      </button>
+      </a>
     {:else if context.footer}
       {@render sideLink(context.footer)}
     {/if}
