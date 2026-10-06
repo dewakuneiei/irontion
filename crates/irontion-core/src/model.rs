@@ -104,3 +104,23 @@ pub struct DailyTotal {
     pub date: String,
     pub blocks: i64,
 }
+
+/// Which data a "delete data" action removes. Tags are never touched.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum DeleteScope {
+    /// Every recorded time block; activities stay.
+    AllBlocks,
+    /// Time blocks from `from` to `to`, both included (`YYYY-MM-DD`). One day: `from == to`.
+    BlocksInRange { from: String, to: String },
+    /// Every activity, archived ones too, and with them all their time blocks.
+    AllActivities,
+}
+
+/// How much a delete removes (or would remove).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DataCounts {
+    pub blocks: i64,
+    pub activities: i64,
+}

@@ -43,6 +43,8 @@ fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) -> bool + Send + Sync + 'static 
         commands::apply_day_changes,
         commands::activity_totals,
         commands::daily_totals,
+        commands::count_data,
+        commands::delete_data,
     ]
 }
 
@@ -257,5 +259,80 @@ mod tests {
                 .len(),
             144
         );
+    }
+
+    #[test]
+    fn deleting_data_by_scope_over_ipc() {
+        let (_app, w) = app();
+        let study = call(
+            &w,
+            "create_activity",
+            json!({ "input": { "parentId": null, "name": "Study", "color": "#123456", "tagIds": [] } }),
+        )
+        .unwrap();
+        let changes: Vec<Value> = (0..3)
+            .map(|slot| json!({ "slot": slot, "activityId": study["id"] }))
+            .collect();
+        for date in ["2026-10-04", "2026-10-05"] {
+            call(&w, "apply_day_changes", json!({ "date": date, "changes": changes })).unwrap();
+        }
+
+        // Counting is a preview: nothing is removed.
+        let one_day = json!({ "kind": "blocksInRange", "from": "2026-10-04", "to": "2026-10-04" });
+        assert_eq!(
+            call(&w, "count_data", json!({ "scope": one_day })).unwrap(),
+            json!({ "blocks": 3, "activities": 0 })
+        );
+        assert_eq!(
+            call(
+                &w,
+                "activity_totals",
+                json!({ "from": "2026-10-01", "to": "2026-10-31" })
+            )
+            .unwrap()[0]["blocks"],
+            json!(6)
+        );
+
+        // One day goes; the other stays.
+        assert_eq!(
+            call(&w, "delete_data", json!({ "scope": one_day })).unwrap(),
+            json!({ "blocks": 3, "activities": 0 })
+        );
+        assert_eq!(
+            call(
+                &w,
+                "activity_totals",
+                json!({ "from": "2026-10-01", "to": "2026-10-31" })
+            )
+            .unwrap()[0]["blocks"],
+            json!(3)
+        );
+
+        // A backwards range is refused with a stable kind.
+        let backwards = json!({ "kind": "blocksInRange", "from": "2026-10-05", "to": "2026-10-01" });
+        assert_eq!(
+            call(&w, "delete_data", json!({ "scope": backwards })).unwrap_err()["kind"],
+            json!("invalidDate")
+        );
+
+        // All blocks keep the activity; all activities remove everything.
+        call(&w, "delete_data", json!({ "scope": { "kind": "allBlocks" } })).unwrap();
+        assert_eq!(
+            call(&w, "list_activities", json!({}))
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            call(&w, "delete_data", json!({ "scope": { "kind": "allActivities" } })).unwrap(),
+            json!({ "blocks": 0, "activities": 1 })
+        );
+        assert!(call(&w, "list_activities", json!({}))
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .is_empty());
     }
 }

@@ -4,11 +4,11 @@
 use std::sync::Mutex;
 
 use irontion_core::model::{
-    Activity, ActivityId, ActivityPatch, ActivityTotal, DailyTotal, DayChange, DaySlots, NewActivity, Tag, TagId,
-    TagInput, TreeNode, TreePlanItem, TreeReport,
+    Activity, ActivityId, ActivityPatch, ActivityTotal, DailyTotal, DataCounts, DayChange, DaySlots, DeleteScope,
+    NewActivity, Tag, TagId, TagInput, TreeNode, TreePlanItem, TreeReport,
 };
 use irontion_core::Connection;
-use irontion_core::{activities, activity_tree, blocks, summary, tags};
+use irontion_core::{activities, activity_tree, blocks, data, summary, tags};
 use serde::Serialize;
 use tauri::State;
 
@@ -127,4 +127,14 @@ pub async fn activity_totals(db: State<'_, Db>, from: String, to: String) -> Cmd
 #[tauri::command]
 pub async fn daily_totals(db: State<'_, Db>, from: String, to: String) -> CmdResult<Vec<DailyTotal>> {
     with_db(&db, |c| summary::daily_totals(c, &from, &to))
+}
+
+#[tauri::command]
+pub async fn count_data(db: State<'_, Db>, scope: DeleteScope) -> CmdResult<DataCounts> {
+    with_db(&db, |c| data::count(c, &scope))
+}
+
+#[tauri::command]
+pub async fn delete_data(db: State<'_, Db>, scope: DeleteScope) -> CmdResult<DataCounts> {
+    with_db(&db, |c| data::delete(c, &scope))
 }

@@ -13,12 +13,20 @@
   import { cubicOut } from "svelte/easing";
   import { fly } from "svelte/transition";
   import Logo from "$lib/components/Logo.svelte";
+  import Toggle from "$lib/components/Toggle.svelte";
   import AccentPicker from "$lib/components/settings/AccentPicker.svelte";
   import CellShapePicker from "$lib/components/settings/CellShapePicker.svelte";
   import FillDirectionPicker from "$lib/components/settings/FillDirectionPicker.svelte";
+  import DangerZone from "$lib/components/settings/DangerZone.svelte";
   import DateTimeSettings from "$lib/components/settings/DateTimeSettings.svelte";
   import { LOCALES, i18n, t, type LocalePref } from "$lib/i18n/index.svelte";
+  import { preferences } from "$lib/preferences.svelte";
   import { THEME_MODES, theme, type ThemeMode } from "$lib/theme.svelte";
+
+  // The license asks everyone who uses Irontion to credit these (see LICENSE).
+  const AUTHOR = "dewakuneiei";
+  const AUTHOR_URL = "https://github.com/dewakuneiei";
+  const REPO_URL = "https://github.com/dewakuneiei/irontion";
 
   let version = $state("0.1.0");
   onMount(async () => {
@@ -135,6 +143,17 @@
       </div>
     </div>
     <FillDirectionPicker />
+    <div class="mt-5 flex items-center justify-between gap-4 rounded-xl bg-surface-2 px-4 py-3">
+      <div class="min-w-0">
+        <p class="text-sm font-medium">{t("settings.fill.waveTitle")}</p>
+        <p class="text-[13px] text-muted">{t("settings.fill.waveHint")}</p>
+      </div>
+      <Toggle
+        checked={preferences.fillAnimation}
+        label={t("settings.fill.waveTitle")}
+        onchange={(on) => preferences.setFillAnimation(on)}
+      />
+    </div>
   </section>
 
   <!-- Date and time -->
@@ -187,8 +206,13 @@
     </div>
   </section>
 
+  <!-- Danger zone -->
+  <section class="rounded-2xl border border-danger/40 bg-surface p-6 shadow-card" in:fly={enter(6)}>
+    <DangerZone />
+  </section>
+
   <!-- About -->
-  <section class="rounded-2xl border border-line bg-surface p-6 shadow-card" in:fly={enter(6)}>
+  <section class="rounded-2xl border border-line bg-surface p-6 shadow-card" in:fly={enter(7)}>
     <div class="mb-4 flex items-start gap-3">
       <span class="grid size-9 place-items-center rounded-xl bg-accent-soft text-accent"><Info size={18} /></span>
       <h2 class="mt-1.5 font-semibold">{t("settings.about.title")}</h2>
@@ -199,6 +223,7 @@
         <p class="font-semibold">{t("app.name")}</p>
         <p class="text-sm text-muted">{t("settings.about.version", { version })}</p>
         <p class="text-sm text-muted">{t("app.tagline")}</p>
+        <p class="text-sm text-muted break-words">{t("settings.about.credit", { author: AUTHOR, profile: AUTHOR_URL, url: REPO_URL })}</p>
       </div>
     </div>
   </section>

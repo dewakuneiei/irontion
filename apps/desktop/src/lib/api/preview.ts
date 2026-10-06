@@ -10,8 +10,10 @@ import type {
   ActivityPatch,
   ActivityTotal,
   DailyTotal,
+  DataCounts,
   DayChange,
   DaySlots,
+  DeleteScope,
   ErrorKind,
   NewActivity,
   Tag,
@@ -238,6 +240,34 @@ export class PreviewBackend implements Backend {
       .map(([date, slots]) => ({ date, blocks: slots.filter((s) => s !== null).length }))
       .filter((d) => d.blocks > 0)
       .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // ---------- Delete data ----------
+
+  async countData(scope: DeleteScope): Promise<DataCounts> {
+    if (scope.kind === "blocksInRange") this.checkRange(scope.from, scope.to);
+    const inScope = (date: string) => scope.kind !== "blocksInRange" || (date >= scope.from && date <= scope.to);
+    let blocks = 0;
+    for (const [date, slots] of this.days) if (inScope(date)) blocks += slots.filter((s) => s !== null).length;
+    return { blocks, activities: scope.kind === "allActivities" ? this.activities.length : 0 };
+  }
+
+  async deleteData(scope: DeleteScope): Promise<DataCounts> {
+    const counts = await this.countData(scope);
+    if (scope.kind === "allActivities") {
+      this.activities = [];
+      this.days.clear();
+    } else if (scope.kind === "allBlocks") {
+      this.days.clear();
+    } else {
+      for (const date of [...this.days.keys()]) if (date >= scope.from && date <= scope.to) this.days.delete(date);
+    }
+    return counts;
+  }
+
+  private checkRange(from: string, to: string) {
+    const valid = (d: string) => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(d);
+    if (!valid(from) || !valid(to) || from > to) fail("invalidDate");
   }
 
   // ---------- Helpers ----------

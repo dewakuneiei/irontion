@@ -4,8 +4,10 @@ import type {
   ActivityPatch,
   ActivityTotal,
   DailyTotal,
+  DataCounts,
   DayChange,
   DaySlots,
+  DeleteScope,
   ErrorKind,
   NewActivity,
   Tag,
@@ -45,6 +47,11 @@ export interface Backend {
 
   activityTotals(from: string, to: string): Promise<ActivityTotal[]>;
   dailyTotals(from: string, to: string): Promise<DailyTotal[]>;
+
+  /** What `deleteData` would remove for this scope. Changes nothing. */
+  countData(scope: DeleteScope): Promise<DataCounts>;
+  /** Permanently delete the scope in one step and say how much went. */
+  deleteData(scope: DeleteScope): Promise<DataCounts>;
 }
 
 export class BackendError extends Error {

@@ -1,0 +1,181 @@
+import type { ActivityTemplate } from "$lib/domain/templates";
+import { BLUE, DARK_GREEN, GRAY, GREEN, ORANGE, PINK, RED, VIOLET, YELLOW, l, node, word } from "./words";
+
+export const CREATIVE_TEMPLATES: ActivityTemplate[] = [
+  {
+    id: "freelance-creative",
+    category: "creative",
+    name: l(
+      "Freelance creative",
+      "ฟรีแลนซ์สายครีเอทีฟ",
+      "自由创作者",
+      "フリーランスのクリエイター",
+      "프리랜서 크리에이터",
+    ),
+    description: l(
+      "Client work, personal projects and the business side, all in one week.",
+      "งานลูกค้า โปรเจกต์ส่วนตัว และงานบริหารธุรกิจ ในสัปดาห์เดียว",
+      "客户工作、个人作品和经营事务，一周搞定。",
+      "クライアントワーク、自主制作、事業運営を一週間にまとめます。",
+      "클라이언트 작업, 개인 프로젝트, 사업 운영을 한 주에 담아요.",
+    ),
+    nodes: [
+      node(l("Creative work", "งานสร้างสรรค์", "创作", "クリエイティブ作業", "창작 작업"), PINK, [
+        node(l("Client projects", "งานลูกค้า", "客户项目", "クライアント案件", "클라이언트 프로젝트")),
+        node(l("Personal projects", "โปรเจกต์ส่วนตัว", "个人作品", "自主制作", "개인 프로젝트")),
+        node(word.practice),
+      ]),
+      node(l("Business", "ธุรกิจ", "经营", "ビジネス", "비즈니스"), BLUE, [
+        node(l("Replying to clients", "ตอบลูกค้า", "回复客户", "クライアント対応", "클라이언트 응대")),
+        node(l("Invoices and payments", "ใบแจ้งหนี้และการชำระเงิน", "发票与收款", "請求と入金", "청구와 결제")),
+        node(word.marketing),
+      ]),
+      node(l("Life", "ชีวิตประจำวัน", "生活", "生活", "생활"), GREEN, [node(word.exercise), node(word.meals)]),
+    ],
+  },
+  {
+    id: "writer",
+    category: "creative",
+    name: l(
+      "Writer or researcher",
+      "นักเขียน / นักวิจัย",
+      "作家 / 研究者",
+      "ライター／研究者",
+      "작가 / 연구자",
+    ),
+    description: l(
+      "Long stretches for writing, with research, editing and sharing around them.",
+      "ช่วงเวลายาวสำหรับการเขียน พร้อมการค้นคว้า แก้ไข และเผยแพร่",
+      "整块时间用于写作，并安排调研、修改和发布。",
+      "執筆の長い時間に、調査、推敲、発信を組み合わせます。",
+      "글쓰기에 긴 시간을 쓰고 조사, 퇴고, 공유를 함께 해요.",
+    ),
+    nodes: [
+      node(word.writing, VIOLET, [node(word.drafting), node(word.editing)]),
+      node(word.research, BLUE, [node(word.reading), node(word.notes)]),
+      node(l("Ideas and outlines", "ไอเดียและโครงเรื่อง", "灵感与大纲", "アイデアと構成", "아이디어와 구성"), YELLOW),
+      node(l("Publishing and sharing", "เผยแพร่และแบ่งปัน", "发布与分享", "発表と発信", "발행과 공유"), ORANGE),
+      node(word.breaks, GREEN),
+    ],
+  },
+  {
+    id: "photographer",
+    category: "creative",
+    name: l("Photographer", "ช่างภาพ", "摄影师", "フォトグラファー", "사진작가"),
+    description: l(
+      "Shoot, edit and deliver, with time for clients, promotion and gear.",
+      "ถ่ายภาพ แต่งภาพ ส่งมอบ พร้อมเวลาสำหรับลูกค้า การโปรโมต และอุปกรณ์",
+      "拍摄、修图、交付，也留时间给客户、推广和器材。",
+      "撮影、編集、納品に、顧客対応、宣伝、機材の時間も。",
+      "촬영, 보정, 납품에 고객, 홍보, 장비 시간까지.",
+    ),
+    nodes: [
+      node(l("Shooting", "ถ่ายภาพ", "拍摄", "撮影", "촬영"), PINK),
+      node(l("Editing and retouching", "แต่งและรีทัชภาพ", "修图与后期", "編集とレタッチ", "보정과 편집"), VIOLET),
+      node(l("Clients and bookings", "ลูกค้าและการจอง", "客户与预约", "顧客と予約", "고객과 예약"), BLUE),
+      node(word.marketing, ORANGE, [
+        node(l("Portfolio and website", "พอร์ตโฟลิโอและเว็บไซต์", "作品集与网站", "ポートフォリオとサイト", "포트폴리오와 웹사이트")),
+        node(word.socialMedia),
+      ]),
+      node(l("Gear and backups", "อุปกรณ์และสำรองข้อมูล", "器材与备份", "機材とバックアップ", "장비와 백업"), GRAY),
+      node(word.learning, DARK_GREEN),
+    ],
+  },
+  {
+    id: "musician",
+    category: "creative",
+    name: l("Musician", "นักดนตรี", "音乐人", "ミュージシャン", "음악가"),
+    description: l(
+      "Practice, write, rehearse, perform and share your music.",
+      "ฝึกซ้อม แต่งเพลง ซ้อมวง แสดง และแบ่งปันดนตรีของคุณ",
+      "练习、创作、排练、演出并分享你的音乐。",
+      "練習、作曲、リハーサル、演奏、そして音楽を届けます。",
+      "연습하고, 곡을 쓰고, 합주하고, 공연하고, 음악을 나눠요.",
+    ),
+    nodes: [
+      node(word.practice, BLUE, [
+        node(l("Technique and scales", "เทคนิคและสเกล", "技巧与音阶", "テクニックとスケール", "테크닉과 스케일")),
+        node(l("Repertoire", "เพลงที่ใช้แสดง", "曲目", "レパートリー", "레퍼토리")),
+      ]),
+      node(l("Writing and composing", "แต่งเพลง", "创作", "作曲・作詞", "작곡과 작사"), PINK),
+      node(l("Rehearsal", "ซ้อมวง", "排练", "リハーサル", "합주 연습"), ORANGE),
+      node(l("Performances", "การแสดง", "演出", "ライブ・演奏", "공연"), RED),
+      node(l("Recording and mixing", "บันทึกเสียงและมิกซ์", "录音与混音", "録音とミキシング", "녹음과 믹싱"), VIOLET),
+      node(l("Promotion", "โปรโมต", "宣传", "プロモーション", "홍보"), YELLOW),
+    ],
+  },
+  {
+    id: "content-creator",
+    category: "creative",
+    name: l(
+      "Content creator",
+      "ครีเอเตอร์คอนเทนต์",
+      "内容创作者",
+      "コンテンツクリエイター",
+      "콘텐츠 크리에이터",
+    ),
+    description: l(
+      "Ideas, filming, editing and publishing, with time to talk with your audience.",
+      "ไอเดีย ถ่ายทำ ตัดต่อ และเผยแพร่ พร้อมเวลาพูดคุยกับผู้ชม",
+      "创意、拍摄、剪辑与发布，也留时间和观众互动。",
+      "企画、撮影、編集、公開に、視聴者と交流する時間も。",
+      "아이디어, 촬영, 편집, 업로드에 시청자와 소통할 시간까지.",
+    ),
+    nodes: [
+      node(l("Ideas and scripts", "ไอเดียและสคริปต์", "创意与脚本", "企画と台本", "아이디어와 대본"), YELLOW),
+      node(l("Filming and recording", "ถ่ายทำและบันทึก", "拍摄与录制", "撮影と収録", "촬영과 녹화"), RED),
+      node(l("Video editing", "ตัดต่อวิดีโอ", "视频剪辑", "動画編集", "영상 편집"), VIOLET),
+      node(l("Publishing", "เผยแพร่", "发布", "公開", "업로드"), BLUE),
+      node(l("Audience and comments", "ผู้ชมและความคิดเห็น", "观众与评论", "視聴者とコメント", "시청자와 댓글"), ORANGE),
+      node(l("Analytics", "วิเคราะห์ผล", "数据分析", "分析", "분석"), GREEN),
+    ],
+  },
+  {
+    id: "artist",
+    category: "creative",
+    name: l(
+      "Illustrator or artist",
+      "นักวาดภาพประกอบ / ศิลปิน",
+      "插画师 / 艺术家",
+      "イラストレーター／アーティスト",
+      "일러스트레이터 / 아티스트",
+    ),
+    description: l(
+      "Draw, take commissions and keep your portfolio and business moving.",
+      "วาดภาพ รับงานจ้าง และดูแลพอร์ตโฟลิโอและธุรกิจให้เดินหน้า",
+      "绘画、接受委托，并推进作品集与经营。",
+      "描き、依頼を受け、ポートフォリオと活動を前に進めます。",
+      "그리고, 의뢰를 받고, 포트폴리오와 사업을 이어 가요.",
+    ),
+    nodes: [
+      node(l("Drawing and painting", "วาดภาพและลงสี", "绘画与上色", "描画と彩色", "그리기와 채색"), PINK, [
+        node(l("Personal artwork", "ผลงานส่วนตัว", "个人作品", "自主制作", "개인 작품")),
+        node(l("Studies and sketches", "ฝึกสเก็ตช์", "习作与速写", "習作とスケッチ", "습작과 스케치")),
+      ]),
+      node(l("Commissions", "งานจ้าง", "委托项目", "依頼案件", "의뢰 작업"), BLUE),
+      node(l("Portfolio and social media", "พอร์ตโฟลิโอและโซเชียลมีเดีย", "作品集与社交媒体", "ポートフォリオとSNS", "포트폴리오와 소셜 미디어"), ORANGE),
+      node(l("Orders and invoices", "ออเดอร์และใบแจ้งหนี้", "订单与发票", "注文と請求", "주문과 청구"), YELLOW),
+      node(l("Inspiration and reference", "แรงบันดาลใจและภาพอ้างอิง", "灵感与参考", "インスピレーションと資料", "영감과 참고 자료"), GREEN),
+    ],
+  },
+  {
+    id: "journalist",
+    category: "creative",
+    name: l("Journalist", "นักข่าว", "记者", "ジャーナリスト", "기자"),
+    description: l(
+      "Research, interviews, writing and checking, around deadlines.",
+      "ค้นคว้า สัมภาษณ์ เขียน และตรวจสอบ ตามกำหนดส่ง",
+      "围绕截稿时间做调研、采访、写作与核实。",
+      "締め切りに合わせて、取材、執筆、確認を進めます。",
+      "마감에 맞춰 취재, 인터뷰, 글쓰기, 사실 확인을 해요.",
+    ),
+    nodes: [
+      node(word.research, BLUE),
+      node(l("Interviews and calls", "สัมภาษณ์และโทรหาแหล่งข่าว", "采访与联系", "取材と電話", "인터뷰와 전화"), ORANGE),
+      node(word.writing, VIOLET, [node(word.drafting), node(word.editing)]),
+      node(l("Fact-checking", "ตรวจสอบข้อเท็จจริง", "事实核查", "ファクトチェック", "사실 확인"), RED),
+      node(l("Pitching stories", "เสนอประเด็นข่าว", "选题提案", "企画の提案", "기사 기획 제안"), YELLOW),
+      node(word.breaks, GREEN),
+    ],
+  },
+];

@@ -101,12 +101,12 @@ src/
 │   ├── api/            # Backend interface: Tauri (real app) and preview (browser)
 │   ├── stores/         # Shared state: catalog (activities + tags), day, reports, notices
 │   ├── domain/         # Pure logic: slots, tree, time, stats, colors (unit-tested)
-│   ├── components/     # UI: blocks/, activities/, settings/, Sidebar, Modal, Button, Chart, ...
+│   ├── components/     # UI: blocks/, activities/, settings/ (incl. danger zone), templates/, Sidebar, Modal, Button, Chart, ...
 │   ├── charts/         # ECharts setup, theme-aware palette, shared chart builders
-│   ├── templates/      # The 12 built-in activity templates (system data, F005)
+│   ├── templates/      # The 67 built-in activity templates, one file per group (system data, F005)
 │   ├── i18n/           # Translations (en, th, zh-CN, ja, ko) and t()
 │   ├── theme.svelte.ts       # Light / Dark / System theme (F003)
-│   ├── preferences.svelte.ts # Accent color and block shape (F003)
+│   ├── preferences.svelte.ts # Accent, block shape, time fill, date and time formats (F003)
 │   └── layout.svelte.ts      # Sidebar fold in / out (F004)
 └── app.css             # Design tokens for both themes
 src-tauri/              # Thin Tauri commands over crates/irontion-core, window config, bundling

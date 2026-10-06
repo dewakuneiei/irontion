@@ -16,8 +16,11 @@ status: in-development
 > - **Priority:** Performance first. Each platform can use a separate stack.
 > - **Storage:** Local only (no cloud database). Backup to Google Drive later.
 > - **Languages:** English, Thai, Chinese, Japanese, Korean (more later). See [[#Languages (i18n)]]
-> - **Look:** Light, Dark or follow the OS; user-chosen accent color; square or circle blocks; date format, week start and 12/24-hour time. See [[F003]]
+> - **Look:** Light, Dark or follow the OS; user-chosen accent color; square or circle blocks; time fill direction with an optional water wave; date format, week start and 12/24-hour time. See [[F003]]
+> - **Templates:** 67 built-in activity templates in nine groups, with search and category filter. See [[F005]]
+> - **Your data:** Settings → Danger zone (behind an Advanced fold-out) deletes time blocks (all, or a date range) or all activities. See [[F003]]
 > - **Layout:** Responsive from 390px to wide screens; the sidebar can be folded away. See [[F004]]
+> - **License:** Apache License 2.0 (free to use for anything), plus a `NOTICE` file that asks for credit to **dewakuneiei** (https://github.com/dewakuneiei) and https://github.com/dewakuneiei/irontion
 
 Related features: [[F001]] [[F002]] [[F003]] [[F004]] [[F005]]
 
@@ -104,7 +107,7 @@ irontion/
 > - If mobile uses Tauri mobile instead of native, it can live in `apps/mobile`
 
 > [!info] Shared Rust core
-> Put all logic in `irontion-core` (activities, tags, time blocks, summaries).
+> Put all logic in `irontion-core` (activities, tags, time blocks, summaries, bulk delete).
 > It can be reused later:
 > - Desktop → called directly by Tauri
 > - Mobile → through **UniFFI** (Kotlin / Swift bindings)

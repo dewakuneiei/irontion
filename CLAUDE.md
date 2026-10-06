@@ -40,4 +40,4 @@ Before saying a change is done: `pnpm check`, `pnpm test`, and `cargo test` in b
 - Colors come from theme tokens (`bg-surface`, `text-ink-2`, `bg-accent`, ...) so light, dark and the user's accent color all work. Never hard-code a UI color or assume the accent is blue. User-chosen activity colors are the only exception.
 - Every page must work from 390px to wide screens with no sideways scroll (see `irontion-ui-rules`, Responsive).
 - The database is the source of truth. The UI never invents IDs or keeps state that the backend does not know about.
-- Only leaf activities (no active children) can be assigned to new time blocks. Deleting an activity archives it; history stays.
+- Only leaf activities (no active children) can be assigned to new time blocks. Deleting an activity archives it; history stays. The one exception is Settings → Danger zone, which permanently deletes on purpose (behind an Advanced fold-out, with counts and a confirmation).

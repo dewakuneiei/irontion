@@ -2,6 +2,8 @@ import { getBackend } from "$lib/api/backend";
 import type {
   Activity,
   ActivityPatch,
+  DataCounts,
+  DeleteScope,
   NewActivity,
   Tag,
   TagInput,
@@ -106,6 +108,21 @@ class CatalogStore {
 
   async blockCount(id: number): Promise<number> {
     return (await getBackend()).activityBlockCount(id);
+  }
+
+  /** What deleting this scope would remove. Changes nothing. */
+  async countData(scope: DeleteScope): Promise<DataCounts> {
+    return (await getBackend()).countData(scope);
+  }
+
+  /**
+   * Permanently delete the scope, then reload. Callers showing a day must reopen it:
+   * blocks changed even when the activities did not.
+   */
+  async deleteData(scope: DeleteScope): Promise<DataCounts> {
+    const counts = await (await getBackend()).deleteData(scope);
+    await this.reload();
+    return counts;
   }
 
   async createTag(input: TagInput): Promise<Tag> {

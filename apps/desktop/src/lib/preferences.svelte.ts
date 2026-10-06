@@ -21,6 +21,7 @@ const DEFAULT_FILL_DIRECTION: FillDirection = "right";
 
 const SHAPE_KEY = "irontion.cellShape";
 const FILL_KEY = "irontion.fillDirection";
+const FILL_ANIMATION_KEY = "irontion.fillAnimation";
 const DATE_FORMAT_KEY = "irontion.dateFormat";
 const WEEK_START_KEY = "irontion.weekStart";
 const TIME_FORMAT_KEY = "irontion.timeFormat";
@@ -64,6 +65,14 @@ class PreferencesState {
   timeFormat = $state<TimeFormat>(read(TIME_FORMAT_KEY) === "12h" ? "12h" : DEFAULT_TIME_FORMAT);
 
   fillDirection = $state<FillDirection>(savedFillDirection());
+
+  /** A gentle water wave on the surface of the filling block. */
+  fillAnimation = $state(read(FILL_ANIMATION_KEY) !== "off");
+
+  setFillAnimation(on: boolean) {
+    this.fillAnimation = on;
+    write(FILL_ANIMATION_KEY, on ? "on" : "off");
+  }
 
   setFillDirection(direction: FillDirection) {
     this.fillDirection = direction;

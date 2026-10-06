@@ -5,8 +5,10 @@ import type {
   ActivityPatch,
   ActivityTotal,
   DailyTotal,
+  DataCounts,
   DayChange,
   DaySlots,
+  DeleteScope,
   ErrorKind,
   NewActivity,
   Tag,
@@ -52,4 +54,7 @@ export class TauriBackend implements Backend {
 
   activityTotals = (from: string, to: string) => this.call<ActivityTotal[]>("activity_totals", { from, to });
   dailyTotals = (from: string, to: string) => this.call<DailyTotal[]>("daily_totals", { from, to });
+
+  countData = (scope: DeleteScope) => this.call<DataCounts>("count_data", { scope });
+  deleteData = (scope: DeleteScope) => this.call<DataCounts>("delete_data", { scope });
 }

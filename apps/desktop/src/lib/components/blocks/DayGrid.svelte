@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { DaySlots } from "$lib/api/types";
   import { readableInk } from "$lib/domain/color";
-  import { blockAt, moveSelection, range } from "$lib/domain/slots";
+  import { addRange, blockAt, moveSelection, toggleBlock } from "$lib/domain/slots";
   import { HOURS, SLOTS_PER_DAY, SLOTS_PER_HOUR, SLOT_MINUTES, type DayProgress } from "$lib/domain/time";
   import { formatCellTime, formatHourLabel, slotTimes } from "$lib/format.svelte";
   import { t } from "$lib/i18n/index.svelte";
@@ -26,7 +26,7 @@
     onchange: (next: DaySlots) => void;
   } = $props();
 
-  type Gesture = { kind: "select"; anchor: number } | { kind: "move"; grab: number };
+  type Gesture = { kind: "select"; anchor: number; base: ReadonlySet<number> } | { kind: "move"; grab: number };
 
   const STEP: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -SLOTS_PER_HOUR, ArrowDown: SLOTS_PER_HOUR };
   const columnLabels = Array.from({ length: SLOTS_PER_HOUR }, (_, i) => `:${String(i * SLOT_MINUTES).padStart(2, "0")}`);
@@ -34,8 +34,9 @@
   let gesture = $state<Gesture | null>(null);
   let hovered = $state<number | null>(null);
   let cursor = $state(0);
-  /** Where Shift+click or Shift+arrows extend from. */
+  /** Where Shift+click or Shift+arrows extend from, and what was selected before that range began. */
   let anchor = 0;
+  let rangeBase: ReadonlySet<number> = new Set();
 
   const firstSelected = $derived(selection.size > 0 ? Math.min(...selection) : 0);
 
@@ -44,7 +45,10 @@
     const from = moving ? firstSelected : gesture?.kind === "move" ? gesture.grab : null;
     return from === null || hovered === null ? null : moveSelection(slots, selection, hovered - from);
   });
-  const selectDraft = $derived(gesture?.kind === "select" && hovered !== null ? pick(gesture.anchor, hovered) : null);
+  // Selecting adds to what is already selected: it is only ever cleared on purpose.
+  const selectDraft = $derived(
+    gesture?.kind === "select" && hovered !== null ? addRange(gesture.base, ...extent(gesture.anchor, hovered)) : null,
+  );
 
   const shownSlots = $derived(moveDraft?.slots ?? slots);
   const shownSelection = $derived(moveDraft?.selection ?? selectDraft ?? selection);
@@ -56,10 +60,18 @@
     return time.isToday && slot === time.elapsed ? "current" : "future";
   }
 
-  /** One cell selects its whole block; a drag selects everything between. */
-  function pick(from: number, to: number): Set<number> {
-    return new Set(from === to ? blockAt(slots, from) : range(from, to));
+  /**
+   * The slots a press from `from` to `to` covers: just one cell becomes its whole block (the run
+   * of the same activity), several cells are everything between.
+   */
+  function extent(from: number, to: number): [number, number] {
+    if (from !== to) return [from, to];
+    const block = blockAt(slots, from);
+    return [block[0], block[block.length - 1]];
   }
+
+  /** What was selected before the current range started, forgetting it once the selection is cleared. */
+  const baseSelection = () => (selection.size === 0 ? new Set<number>() : rangeBase);
 
   // ---------- Pointer ----------
 
@@ -77,10 +89,13 @@
       toggle(slot);
       return;
     }
-    gesture =
-      selection.has(slot) && !event.shiftKey
-        ? { kind: "move", grab: slot }
-        : { kind: "select", anchor: event.shiftKey ? anchor : slot };
+    if (selection.has(slot) && !event.shiftKey) {
+      gesture = { kind: "move", grab: slot };
+    } else if (event.shiftKey) {
+      gesture = { kind: "select", anchor, base: baseSelection() };
+    } else {
+      gesture = { kind: "select", anchor: slot, base: selection };
+    }
     hovered = slot;
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     event.preventDefault();
@@ -102,24 +117,34 @@
       if (dropped && dropped.offset !== 0) commit(dropped);
       moving = false;
     } else if (finished?.kind === "select") {
-      selection = selected ?? pick(finished.anchor, finished.anchor);
+      selection = selected ?? addRange(finished.base, ...extent(finished.anchor, finished.anchor));
       anchor = finished.anchor;
+      rangeBase = finished.base;
     } else if (finished?.kind === "move") {
-      if (dropped && dropped.offset !== 0) commit(dropped);
-      else selection = pick(finished.grab, finished.grab); // a click, not a drag
+      if (dropped && dropped.offset !== 0) {
+        commit(dropped);
+      } else {
+        // A click, not a drag: on a selected block it takes that block out of the selection.
+        selection = toggleBlock(slots, selection, finished.grab);
+        anchor = finished.grab;
+        rangeBase = selection;
+      }
     }
   }
 
+  /** Ctrl+click: one cell in or out, not its whole block. */
   function toggle(slot: number) {
     const next = new Set(selection);
     if (!next.delete(slot)) next.add(slot);
     selection = next;
     anchor = slot;
+    rangeBase = next;
   }
 
   function commit(moved: { slots: DaySlots; selection: Set<number> }) {
     onchange(moved.slots);
     selection = moved.selection;
+    rangeBase = moved.selection;
   }
 
   // ---------- Keyboard ----------
@@ -131,10 +156,11 @@
       if (moved.offset !== 0) commit(moved);
     } else if (step !== undefined) {
       cursor = Math.max(0, Math.min(SLOTS_PER_DAY - 1, cursor + step));
-      if (event.shiftKey) selection = new Set(range(anchor, cursor));
+      if (event.shiftKey) selection = addRange(baseSelection(), anchor, cursor);
     } else if (event.key === "Enter" || event.key === " ") {
-      selection = pick(cursor, cursor);
+      selection = toggleBlock(slots, selection, cursor);
       anchor = cursor;
+      rangeBase = selection;
     } else {
       return;
     }
@@ -207,7 +233,12 @@
             style:color={phase === "past" && color ? readableInk(color) : undefined}
           >
             {#if phase === "current"}
-              <span class="fill {preferences.fillDirection}" style:--p="{time.progress * 100}%"></span>
+              <span
+                class="fill {preferences.fillDirection}"
+                class:wave={preferences.fillAnimation}
+                style:--n={time.progress}
+                style:--p="{time.progress * 100}%"
+              ></span>
             {/if}
             {#if selected}
               <span class="label tabular-nums">{formatCellTime(slot)}</span>
@@ -294,6 +325,108 @@
   .fill.left {
     inset: 0 0 0 auto;
     width: var(--p);
+  }
+
+  /*
+    Water wave: two thin wavy strips ride the leading edge of the fill, drifting in opposite
+    directions at different speeds. Each is a color block cut into a wave by a mask, so it
+    always matches the fill's color. The strip sits just outside the fill (the cell clips it).
+  */
+  .fill.wave {
+    --wave: 7px;
+    --period: 22px;
+    --wave-across: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 8' preserveAspectRatio='none'%3E%3Cpath d='M0 4Q10 0 20 4T40 4V8H0Z'/%3E%3C/svg%3E");
+    --wave-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 40' preserveAspectRatio='none'%3E%3Cpath d='M4 0Q0 10 4 20T4 40H0V0Z'/%3E%3C/svg%3E");
+    /* Hidden when the block has just started or is nearly full, where a wave would look odd. */
+    --show: calc(min(1, var(--n) * 30) * min(1, (1 - var(--n)) * 30));
+  }
+  .fill.wave::before,
+  .fill.wave::after {
+    content: "";
+    position: absolute;
+    background: var(--solid);
+    opacity: var(--show);
+    pointer-events: none;
+    -webkit-mask-repeat: repeat;
+    mask-repeat: repeat;
+  }
+  .fill.wave.up::before,
+  .fill.wave.up::after,
+  .fill.wave.down::before,
+  .fill.wave.down::after {
+    left: 0;
+    right: 0;
+    height: var(--wave);
+    -webkit-mask-image: var(--wave-across);
+    mask-image: var(--wave-across);
+    -webkit-mask-size: var(--period) 100%;
+    mask-size: var(--period) 100%;
+    animation: wave-x 2.4s linear infinite;
+  }
+  .fill.wave.up::before,
+  .fill.wave.up::after {
+    bottom: 100%;
+  }
+  .fill.wave.down::before,
+  .fill.wave.down::after {
+    top: 100%;
+    transform: scaleY(-1);
+  }
+  .fill.wave.right::before,
+  .fill.wave.right::after,
+  .fill.wave.left::before,
+  .fill.wave.left::after {
+    top: 0;
+    bottom: 0;
+    width: var(--wave);
+    -webkit-mask-image: var(--wave-down);
+    mask-image: var(--wave-down);
+    -webkit-mask-size: 100% var(--period);
+    mask-size: 100% var(--period);
+    animation: wave-y 2.4s linear infinite;
+  }
+  .fill.wave.right::before,
+  .fill.wave.right::after {
+    left: 100%;
+  }
+  .fill.wave.left::before,
+  .fill.wave.left::after {
+    right: 100%;
+    transform: scaleX(-1);
+  }
+  /* The second wave: fainter, slower and drifting the other way. After the direction rules so it wins. */
+  .fill.wave.up::after,
+  .fill.wave.down::after,
+  .fill.wave.right::after,
+  .fill.wave.left::after {
+    opacity: calc(var(--show) * 0.4);
+    animation-direction: reverse;
+    animation-duration: 3.6s;
+    animation-delay: -1.4s;
+  }
+  @keyframes wave-x {
+    to {
+      -webkit-mask-position: var(--period) 0;
+      mask-position: var(--period) 0;
+    }
+  }
+  @keyframes wave-y {
+    to {
+      -webkit-mask-position: 0 var(--period);
+      mask-position: 0 var(--period);
+    }
+  }
+  /* Only the current block ever has a wave. It also stops while the window is hidden. */
+  :global(:root[data-hidden]) .fill.wave::before,
+  :global(:root[data-hidden]) .fill.wave::after {
+    animation-play-state: paused;
+  }
+  /* Respect "reduce motion": no moving waves. */
+  @media (prefers-reduced-motion: reduce) {
+    .fill.wave::before,
+    .fill.wave::after {
+      display: none;
+    }
   }
   .label {
     position: relative;

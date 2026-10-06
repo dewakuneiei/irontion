@@ -32,6 +32,11 @@
     document.documentElement.lang = i18n.locale;
   });
 
+  // Nothing needs to animate while the window is hidden or minimized: CSS pauses on this flag.
+  function onVisibility() {
+    document.documentElement.toggleAttribute("data-hidden", document.hidden);
+  }
+
   function onWindowKey(event: KeyboardEvent) {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b") {
       event.preventDefault();
@@ -41,6 +46,7 @@
 </script>
 
 <svelte:window onkeydown={onWindowKey} />
+<svelte:document onvisibilitychange={onVisibility} />
 
 <div class="flex h-dvh flex-col overflow-hidden sm:flex-row">
   <Sidebar />

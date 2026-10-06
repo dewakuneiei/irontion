@@ -46,6 +46,21 @@ export function blockAt(slots: DaySlots, slot: number): number[] {
   return range(start, end);
 }
 
+/** The selection with the block under `slot` added, or taken out if `slot` is already selected. */
+export function toggleBlock(slots: DaySlots, selection: ReadonlySet<number>, slot: number): Set<number> {
+  const next = new Set(selection);
+  for (const cell of blockAt(slots, slot)) {
+    if (selection.has(slot)) next.delete(cell);
+    else next.add(cell);
+  }
+  return next;
+}
+
+/** The selection plus every slot from `from` to `to`. Nothing already selected is dropped. */
+export function addRange(selection: ReadonlySet<number>, from: number, to: number): Set<number> {
+  return new Set([...selection, ...range(from, to)]);
+}
+
 /** Give every selected cell this activity, or clear them with `null`. */
 export function assign(slots: DaySlots, selection: Iterable<number>, activityId: number | null): DaySlots {
   const next = [...slots];

@@ -1,0 +1,200 @@
+import type { ActivityTemplate } from "$lib/domain/templates";
+import { BLUE, DARK_GREEN, GRAY, GREEN, ORANGE, PINK, RED, VIOLET, YELLOW, l, node, word } from "./words";
+
+export const TECH_TEMPLATES: ActivityTemplate[] = [
+  {
+    id: "developer",
+    category: "tech",
+    name: l(
+      "Software developer",
+      "นักพัฒนาซอฟต์แวร์",
+      "软件开发者",
+      "ソフトウェア開発者",
+      "소프트웨어 개발자",
+    ),
+    description: l(
+      "Coding in long stretches, with room for reviews, meetings and learning.",
+      "เขียนโค้ดต่อเนื่องยาว ๆ พร้อมเวลาสำหรับรีวิว ประชุม และเรียนรู้",
+      "长时间编码，同时留出评审、会议和学习的时间。",
+      "長いコーディング時間に加え、レビュー、会議、学習の時間も確保します。",
+      "길게 코딩하는 시간과 리뷰, 회의, 배움의 시간을 함께 챙겨요.",
+    ),
+    nodes: [
+      node(word.build, BLUE, [
+        node(l("Coding", "เขียนโค้ด", "编码", "コーディング", "코딩")),
+        node(l("Design and planning", "ออกแบบและวางแผน", "设计与规划", "設計と計画", "설계와 계획")),
+        node(l("Debugging", "แก้บั๊ก", "调试", "デバッグ", "디버깅")),
+      ]),
+      node(word.collaborate, ORANGE, [
+        node(l("Code review", "รีวิวโค้ด", "代码评审", "コードレビュー", "코드 리뷰")),
+        node(word.meetings),
+        node(l("Helping teammates", "ช่วยเพื่อนร่วมทีม", "帮助同事", "チームの支援", "동료 돕기")),
+      ]),
+      node(l("Learn", "เรียนรู้", "学习", "学ぶ", "배우기"), VIOLET, [
+        node(l("Docs and articles", "เอกสารและบทความ", "文档与文章", "ドキュメントと記事", "문서와 글")),
+        node(word.sideProjects),
+      ]),
+      node(word.admin, GRAY, [node(word.email), node(word.tickets)]),
+      node(word.breaks, GREEN),
+    ],
+  },
+  {
+    id: "designer",
+    category: "tech",
+    name: l("UI/UX designer", "นักออกแบบ UI/UX", "UI/UX 设计师", "UI/UX デザイナー", "UI/UX 디자이너"),
+    description: l(
+      "Research, design and prototype, then test and hand over with care.",
+      "ค้นคว้า ออกแบบ ทำต้นแบบ ทดสอบ และส่งต่ออย่างพิถีพิถัน",
+      "调研、设计、做原型，再认真测试与交接。",
+      "リサーチ、デザイン、プロトタイプ、そしてテストと丁寧な引き継ぎ。",
+      "조사, 디자인, 프로토타입 후 꼼꼼하게 테스트하고 넘겨요.",
+    ),
+    nodes: [
+      node(word.research, BLUE, [node(word.userInterviews), node(word.analysis)]),
+      node(l("Design", "ออกแบบ", "设计", "デザイン", "디자인"), PINK, [
+        node(l("Wireframes", "ร่างหน้าจอ", "线框图", "ワイヤーフレーム", "와이어프레임")),
+        node(l("Visual design", "ออกแบบภาพ", "视觉设计", "ビジュアルデザイン", "비주얼 디자인")),
+      ]),
+      node(l("Prototyping and testing", "ทำต้นแบบและทดสอบ", "原型与测试", "プロトタイプとテスト", "프로토타입과 테스트"), VIOLET),
+      node(word.collaborate, ORANGE, [
+        node(word.feedback),
+        node(word.meetings),
+        node(l("Developer handoff", "ส่งต่อให้นักพัฒนา", "交付开发", "開発への引き継ぎ", "개발 전달")),
+      ]),
+      node(word.learning, DARK_GREEN),
+      node(word.admin, GRAY),
+    ],
+  },
+  {
+    id: "data",
+    category: "tech",
+    name: l(
+      "Data analyst or scientist",
+      "นักวิเคราะห์ / นักวิทยาศาสตร์ข้อมูล",
+      "数据分析师 / 数据科学家",
+      "データアナリスト／サイエンティスト",
+      "데이터 분석가 / 과학자",
+    ),
+    description: l(
+      "Clean, explore, model and explain data, with time to talk to the people who use it.",
+      "ทำความสะอาด สำรวจ สร้างแบบจำลอง และอธิบายข้อมูล พร้อมเวลาพูดคุยกับผู้ใช้",
+      "清洗、探索、建模并解释数据，也要留时间与使用者交流。",
+      "データを整え、探索し、モデル化し、説明する。使う人と話す時間も。",
+      "데이터를 정리하고 탐색하고 모델링하고 설명해요. 사용자와 대화할 시간도.",
+    ),
+    nodes: [
+      node(l("Cleaning and preparing data", "ทำความสะอาดและเตรียมข้อมูล", "数据清洗与准备", "データの整備", "데이터 정리와 준비"), YELLOW),
+      node(word.analysis, BLUE, [
+        node(l("Exploration", "สำรวจข้อมูล", "数据探索", "探索", "탐색")),
+        node(l("Modeling", "สร้างแบบจำลอง", "建模", "モデリング", "모델링")),
+      ]),
+      node(l("Reports and dashboards", "รายงานและแดชบอร์ด", "报告与仪表盘", "レポートとダッシュボード", "보고서와 대시보드"), VIOLET),
+      node(l("Talking to stakeholders", "พูดคุยกับผู้เกี่ยวข้อง", "与相关方沟通", "関係者との対話", "이해관계자와 대화"), ORANGE),
+      node(word.learning, DARK_GREEN),
+      node(word.breaks, GREEN),
+    ],
+  },
+  {
+    id: "devops",
+    category: "tech",
+    name: l("DevOps or SRE", "DevOps / SRE", "DevOps / 运维工程师", "DevOps／SRE", "DevOps / SRE"),
+    description: l(
+      "Keep systems healthy: automate, deploy, watch and improve, with on-call in mind.",
+      "ดูแลระบบให้แข็งแรง: ทำงานอัตโนมัติ ปรับใช้ เฝ้าระวัง และปรับปรุง โดยคำนึงถึงเวรออนคอล",
+      "让系统保持健康：自动化、部署、监控与改进，并考虑值班。",
+      "システムを健全に保つ：自動化、デプロイ、監視、改善。オンコールも考慮。",
+      "시스템을 건강하게: 자동화, 배포, 모니터링, 개선. 온콜도 고려해요.",
+    ),
+    nodes: [
+      node(l("Automation and tooling", "ระบบอัตโนมัติและเครื่องมือ", "自动化与工具", "自動化とツール", "자동화와 도구"), BLUE),
+      node(l("Deployments", "การปรับใช้", "部署", "デプロイ", "배포"), VIOLET),
+      node(l("Monitoring and alerts", "เฝ้าระวังและแจ้งเตือน", "监控与告警", "監視とアラート", "모니터링과 알림"), YELLOW),
+      node(l("On-call and incidents", "เวรออนคอลและเหตุการณ์", "值班与故障处理", "オンコールとインシデント", "온콜과 장애 대응"), RED),
+      node(l("Reliability improvements", "ปรับปรุงความเสถียร", "可靠性改进", "信頼性の改善", "안정성 개선"), GREEN),
+      node(word.documentation, GRAY),
+    ],
+  },
+  {
+    id: "product-manager",
+    category: "tech",
+    name: l(
+      "Product manager",
+      "ผู้จัดการผลิตภัณฑ์",
+      "产品经理",
+      "プロダクトマネージャー",
+      "프로덕트 매니저",
+    ),
+    description: l(
+      "Understand customers, shape the roadmap and help the team deliver.",
+      "เข้าใจลูกค้า กำหนดโรดแมป และช่วยให้ทีมส่งมอบงาน",
+      "理解客户、制定路线图，并帮助团队交付。",
+      "顧客を理解し、ロードマップを描き、チームの提供を支えます。",
+      "고객을 이해하고 로드맵을 세우며 팀의 출시를 도와요.",
+    ),
+    nodes: [
+      node(l("Customer discovery", "ทำความเข้าใจลูกค้า", "客户洞察", "顧客理解", "고객 탐색"), PINK, [
+        node(word.userInterviews),
+        node(l("Market research", "ศึกษาตลาด", "市场调研", "市場調査", "시장 조사")),
+      ]),
+      node(l("Roadmap and priorities", "โรดแมปและลำดับความสำคัญ", "路线图与优先级", "ロードマップと優先順位", "로드맵과 우선순위"), BLUE),
+      node(l("Working with the team", "ทำงานกับทีม", "与团队协作", "チームとの作業", "팀과 협업"), VIOLET, [
+        node(l("Writing specs", "เขียนสเปก", "撰写需求", "仕様作成", "명세 작성")),
+        node(word.meetings),
+      ]),
+      node(word.stakeholders, ORANGE),
+      node(l("Metrics and analytics", "ตัวชี้วัดและการวิเคราะห์", "指标与分析", "指標と分析", "지표와 분석"), YELLOW),
+      node(word.learning, DARK_GREEN),
+    ],
+  },
+  {
+    id: "game-dev",
+    category: "tech",
+    name: l("Game developer", "นักพัฒนาเกม", "游戏开发者", "ゲーム開発者", "게임 개발자"),
+    description: l(
+      "Build, play, polish: code, art, design and testing in a loop.",
+      "สร้าง เล่น ขัดเกลา: โค้ด ศิลป์ ออกแบบ และทดสอบเป็นวงจร",
+      "开发、试玩、打磨：代码、美术、设计与测试循环往复。",
+      "作って、遊んで、磨く。コード、アート、デザイン、テストの繰り返し。",
+      "만들고, 플레이하고, 다듬어요. 코드, 아트, 기획, 테스트의 반복.",
+    ),
+    nodes: [
+      node(l("Programming", "เขียนโปรแกรม", "编程", "プログラミング", "프로그래밍"), BLUE),
+      node(l("Art and audio", "ศิลป์และเสียง", "美术与音频", "アートとサウンド", "아트와 사운드"), PINK),
+      node(l("Game design", "ออกแบบเกม", "游戏设计", "ゲームデザイン", "게임 기획"), YELLOW),
+      node(l("Playtesting and bugs", "ทดลองเล่นและแก้บั๊ก", "试玩与修复", "プレイテストとバグ修正", "플레이 테스트와 버그 수정"), RED),
+      node(l("Production and release", "การผลิตและการปล่อยเกม", "制作与发布", "制作とリリース", "제작과 출시"), GRAY),
+      node(word.community, ORANGE),
+      node(word.learning, DARK_GREEN),
+    ],
+  },
+  {
+    id: "researcher",
+    category: "tech",
+    name: l(
+      "Scientist or researcher",
+      "นักวิทยาศาสตร์ / นักวิจัย",
+      "科学家 / 研究人员",
+      "科学者／研究者",
+      "과학자 / 연구원",
+    ),
+    description: l(
+      "Experiments, analysis and writing, with lab meetings and time to read.",
+      "การทดลอง การวิเคราะห์ และการเขียน พร้อมประชุมแล็บและเวลาอ่าน",
+      "实验、分析与写作，加上组会和阅读时间。",
+      "実験、分析、執筆に、ラボミーティングと読む時間も。",
+      "실험, 분석, 글쓰기에 랩 미팅과 읽는 시간까지.",
+    ),
+    nodes: [
+      node(l("Experiments and fieldwork", "ทดลองและงานภาคสนาม", "实验与田野工作", "実験とフィールドワーク", "실험과 현장 연구"), BLUE),
+      node(word.analysis, VIOLET),
+      node(l("Writing papers and grants", "เขียนบทความและขอทุน", "撰写论文与基金申请", "論文・助成金の執筆", "논문·연구비 작성"), RED, [
+        node(word.drafting),
+        node(word.editing),
+      ]),
+      node(l("Reading the literature", "อ่านงานวิจัย", "阅读文献", "文献を読む", "문헌 읽기"), YELLOW),
+      node(l("Lab and team meetings", "ประชุมแล็บและทีม", "组会与团队会议", "ラボ・チーム会議", "랩·팀 회의"), ORANGE),
+      node(l("Teaching and mentoring", "สอนและให้คำแนะนำ", "教学与指导", "教育と指導", "교육과 멘토링"), PINK),
+      node(word.admin, GRAY),
+    ],
+  },
+];

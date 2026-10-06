@@ -6,6 +6,7 @@
 pub mod activities;
 pub mod activity_tree;
 pub mod blocks;
+pub mod data;
 pub mod db;
 mod error;
 pub mod model;

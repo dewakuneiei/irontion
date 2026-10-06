@@ -77,6 +77,20 @@ export interface DailyTotal {
   blocks: number;
 }
 
+/** Which data "delete data" removes. Mirrors `irontion_core::model::DeleteScope`. */
+export type DeleteScope =
+  | { kind: "allBlocks" }
+  /** Both ends included, `YYYY-MM-DD`. One day: `from === to`. */
+  | { kind: "blocksInRange"; from: string; to: string }
+  /** Every activity, and with them all their time blocks. Tags stay. */
+  | { kind: "allActivities" };
+
+/** How much a delete removes, or would remove. */
+export interface DataCounts {
+  blocks: number;
+  activities: number;
+}
+
 /** Mirrors `irontion_core::Error::kind()`. */
 export type ErrorKind =
   | "notFound"

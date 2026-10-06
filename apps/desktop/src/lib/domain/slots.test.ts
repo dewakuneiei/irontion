@@ -8,6 +8,8 @@ import {
   moveSelection,
   range,
   summarizeSelection,
+  addRange,
+  toggleBlock,
 } from "./slots";
 
 const A = 1;
@@ -31,6 +33,38 @@ describe("blocks", () => {
     expect(range(2, 5)).toEqual([2, 3, 4, 5]);
     expect(range(5, 2)).toEqual([2, 3, 4, 5]);
     expect(range(7, 7)).toEqual([7]);
+  });
+});
+
+describe("building up a selection", () => {
+  const slots = day({ 10: A, 11: A, 12: A, 20: B });
+
+  it("clicking a block adds the whole block and keeps what was selected", () => {
+    const first = toggleBlock(slots, new Set(), 11);
+    expect([...first].sort((a, b) => a - b)).toEqual([10, 11, 12]);
+    const second = toggleBlock(slots, first, 20);
+    expect([...second].sort((a, b) => a - b)).toEqual([10, 11, 12, 20]);
+    const third = toggleBlock(slots, second, 40); // an empty cell is just itself
+    expect(third.has(40)).toBe(true);
+    expect(third.size).toBe(5);
+  });
+
+  it("clicking a selected block takes just that block out", () => {
+    const selection = new Set([10, 11, 12, 20, 40]);
+    const next = toggleBlock(slots, selection, 11);
+    expect([...next].sort((a, b) => a - b)).toEqual([20, 40]);
+  });
+
+  it("dragging a range adds to the selection instead of replacing it", () => {
+    const next = addRange(new Set([1, 2]), 6, 4);
+    expect([...next].sort((a, b) => a - b)).toEqual([1, 2, 4, 5, 6]);
+  });
+
+  it("does not change the selection it was given", () => {
+    const selection = new Set([1]);
+    toggleBlock(slots, selection, 10);
+    addRange(selection, 5, 6);
+    expect([...selection]).toEqual([1]);
   });
 });
 

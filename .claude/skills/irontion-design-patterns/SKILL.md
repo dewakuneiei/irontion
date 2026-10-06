@@ -9,7 +9,7 @@ Use a pattern only when it removes a real problem in this codebase. Each entry s
 
 ## Repository (Rust core)
 
-**Where:** `crates/irontion-core/src/{activities,tags,blocks,summary}.rs`, each a set of functions taking `&Connection` (or `&Transaction`).
+**Where:** `crates/irontion-core/src/{activities,tags,blocks,summary,data}.rs`, each a set of functions taking `&Connection` (or `&Transaction`).
 **Why:** keeps SQL in one place per concept and lets tests run on an in-memory DB.
 **Rule:** commands never write SQL; a new query goes in the matching module with a test.
 
