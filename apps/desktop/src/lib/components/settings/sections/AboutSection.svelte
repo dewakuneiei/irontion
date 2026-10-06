@@ -3,9 +3,11 @@
   import { isTauri } from "@tauri-apps/api/core";
   import Info from "@lucide/svelte/icons/info";
   import { onMount } from "svelte";
+  import { openExternal } from "$lib/api/opener";
   import Logo from "$lib/components/Logo.svelte";
   import SettingsCard from "$lib/components/settings/SettingsCard.svelte";
   import { t } from "$lib/i18n/index.svelte";
+  import { notices } from "$lib/stores/notices.svelte";
 
   // The license asks everyone who uses Irontion to credit these (see LICENSE).
   const AUTHOR = "dewakuneiei";
@@ -25,7 +27,21 @@
         <p class="font-semibold">{t("app.name")}</p>
         <p class="text-sm text-muted">{t("settings.about.version", { version })}</p>
         <p class="text-sm text-muted">{t("app.tagline")}</p>
-        <p class="text-sm text-muted break-words">{t("settings.about.credit", { author: AUTHOR, profile: AUTHOR_URL, url: REPO_URL })}</p>
+        <p class="text-sm text-muted break-words">
+          {t("settings.about.createdBy")}
+          {@render link(AUTHOR, AUTHOR_URL)}
+        </p>
+        <p class="text-sm break-all">{@render link(REPO_URL.replace("https://", ""), REPO_URL)}</p>
       </div>
     </div>
 </SettingsCard>
+
+{#snippet link(label: string, url: string)}
+  <button
+    type="button"
+    class="cursor-pointer font-medium text-accent hover:underline"
+    onclick={() => openExternal(url).catch((err) => notices.error(err))}
+  >
+    {label}
+  </button>
+{/snippet}

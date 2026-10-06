@@ -493,7 +493,7 @@ export default {
     about: {
       title: "เกี่ยวกับ",
       version: "เวอร์ชัน {version}",
-      credit: "สร้างโดย {author} ({profile}) · {url}",
+      createdBy: "สร้างโดย",
     },
   },
   errors: {

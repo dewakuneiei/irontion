@@ -26,9 +26,11 @@
   const id = $derived(page.params.section ?? "");
   const Section = $derived(isSettingsSection(id) ? sections[id] : null);
 
-  // An unknown section goes to the list.
+  // An unknown section goes to the list. Only while this page is the open one: when the user
+  // leaves (Back), `params.section` empties before this page is torn down, and redirecting then
+  // would pull them straight back into Settings.
   $effect(() => {
-    if (!Section) void goto("/settings", { replaceState: true });
+    if (!Section && page.route.id === "/settings/[section]") void goto("/settings", { replaceState: true });
   });
 </script>
 

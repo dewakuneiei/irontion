@@ -492,7 +492,7 @@ export default {
     about: {
       title: "About",
       version: "Version {version}",
-      credit: "Created by {author} ({profile}) · {url}",
+      createdBy: "Created by",
     },
   },
   errors: {

@@ -493,7 +493,7 @@ export default {
     about: {
       title: "このアプリについて",
       version: "バージョン {version}",
-      credit: "作者：{author}（{profile}）· {url}",
+      createdBy: "作者：",
     },
   },
   errors: {

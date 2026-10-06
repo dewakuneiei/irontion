@@ -493,7 +493,7 @@ export default {
     about: {
       title: "정보",
       version: "버전 {version}",
-      credit: "만든 사람: {author} ({profile}) · {url}",
+      createdBy: "만든 사람:",
     },
   },
   errors: {

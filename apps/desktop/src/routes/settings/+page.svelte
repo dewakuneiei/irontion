@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import { layout } from "$lib/layout.svelte";
   import { t } from "$lib/i18n/index.svelte";
@@ -7,7 +8,7 @@
 
   // Where the sidebar lists the sections, Settings opens on the first one.
   $effect(() => {
-    if (layout.wide) void goto("/settings/appearance", { replaceState: true });
+    if (layout.wide && page.route.id === "/settings") void goto("/settings/appearance", { replaceState: true });
   });
 </script>
 

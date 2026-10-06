@@ -493,7 +493,7 @@ export default {
     about: {
       title: "关于",
       version: "版本 {version}",
-      credit: "作者：{author}（{profile}）· {url}",
+      createdBy: "作者：",
     },
   },
   errors: {
