@@ -79,11 +79,11 @@
 {#if open}
   <Modal bind:open title={label} width="sm">
     <div class="mb-2 flex items-center justify-between">
-      <button type="button" class="nav" aria-label={t("dates.prevMonth")} onclick={() => stepMonth(-1)}>
+      <button type="button" class="grid size-8 place-items-center rounded-lg text-ink-2 hover:bg-surface-hover hover:text-ink" aria-label={t("dates.prevMonth")} onclick={() => stepMonth(-1)}>
         <ChevronLeft size={16} />
       </button>
       <span class="text-sm font-semibold">{monthTitle}</span>
-      <button type="button" class="nav" aria-label={t("dates.nextMonth")} onclick={() => stepMonth(1)}>
+      <button type="button" class="grid size-8 place-items-center rounded-lg text-ink-2 hover:bg-surface-hover hover:text-ink" aria-label={t("dates.nextMonth")} onclick={() => stepMonth(1)}>
         <ChevronRight size={16} />
       </button>
     </div>
@@ -121,18 +121,3 @@
     {/snippet}
   </Modal>
 {/if}
-
-<style>
-  .nav {
-    display: grid;
-    place-items: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 0.5rem;
-    color: var(--text-2);
-  }
-  .nav:hover {
-    background: var(--surface-hover);
-    color: var(--text);
-  }
-</style>
