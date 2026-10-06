@@ -1,3 +1,5 @@
+import { pathOf } from "$lib/nav";
+
 const SIDEBAR_KEY = "irontion.sidebar";
 /** Windows at least this wide (px) show the sidebar inline; narrower ones use a slide-over drawer. */
 const WIDE_QUERY = "(min-width: 1024px)";
@@ -20,6 +22,11 @@ class LayoutState {
   open = $derived(this.wide ? this.wideOpen : this.drawerOpen);
   /** The last page outside Settings, where "Back" leaves it to. */
   lastApp = $state("/");
+
+  /** Remember a page outside Settings as the one Back returns to. */
+  rememberApp(url: URL) {
+    this.lastApp = pathOf(url) + url.search;
+  }
 
   /** Track the window width. Returns a cleanup function. */
   init(): () => void {

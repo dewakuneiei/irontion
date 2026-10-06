@@ -10,7 +10,7 @@
   import Toasts from "$lib/components/Toasts.svelte";
   import { i18n, t } from "$lib/i18n/index.svelte";
   import { layout } from "$lib/layout.svelte";
-  import { contextFor } from "$lib/nav";
+  import { contextFor, pathOf } from "$lib/nav";
   import { preferences } from "$lib/preferences.svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
   import { notices } from "$lib/stores/notices.svelte";
@@ -21,7 +21,7 @@
 
   // "Back" in Settings returns to the page the user came from.
   afterNavigate(({ to }) => {
-    if (to && contextFor(to.url.pathname).id === "main") layout.lastApp = to.url.pathname + to.url.search;
+    if (to && contextFor(pathOf(to.url)).id === "main") layout.rememberApp(to.url);
   });
 
   $effect(() => theme.init());

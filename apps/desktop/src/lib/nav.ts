@@ -91,7 +91,17 @@ export function contextFor(pathname: string): NavContext {
 export const TAB_MAIN: readonly NavItem[] = [today, blocks, calendar, notes];
 export const TAB_MORE: readonly NavItem[] = [activities, insights, reminders, settings];
 
+/**
+ * A URL's path with the empty root made "/". The packaged app is served from `tauri://localhost`,
+ * a URL whose root path is "" (a browser's `http://host` gives "/"), so every path read from a
+ * `URL` goes through here.
+ */
+export function pathOf(url: Pick<URL, "pathname">): string {
+  return url.pathname || "/";
+}
+
 /** Whether a page is the one open: Notes stays active while a note is open (`/notes/12`). */
 export function isActive(item: NavItem, pathname: string): boolean {
-  return item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const path = pathname || "/";
+  return item.href === "/" ? path === "/" : path === item.href || path.startsWith(`${item.href}/`);
 }
