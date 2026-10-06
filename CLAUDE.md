@@ -2,6 +2,7 @@
 
 Local-first time-blocking and habit tracker. Desktop first (Linux, then Windows/macOS), later web and mobile.
 
+- Bug reports with causes and fixes: `irontion_docs/bugs/` (start at its README). **Read it before debugging anything that works in dev but not in the installed app.**
 - Product notes and feature specs: `irontion_docs/` (Obsidian vault). `info.md` is the tech stack; `features/F00X.md` are specs (F006 Notes, F007 Calendar, F008 Reminders). Update a spec's checklist when you ship part of it.
 - Desktop app: `apps/desktop` (Tauri 2 + SvelteKit SPA + Svelte 5 runes + Tailwind 4 + ECharts).
 - Shared Rust logic and SQLite: `crates/irontion-core` (no Tauri dependency, unit-tested).
@@ -38,6 +39,7 @@ Before saying a change is done: `pnpm check`, `pnpm test`, and `cargo test` in b
 
 - Every user-visible string goes through `t()` and exists in all five locales (`en`, `th`, `zh-CN`, `ja`, `ko`). `en.ts` is the source of truth; `pnpm check` fails if a locale misses a key.
 - Colors come from theme tokens (`bg-surface`, `text-ink-2`, `bg-accent`, ...) so light, dark and the user's accent color all work. Never hard-code a UI color or assume the accent is blue. User-chosen activity colors are the only exception.
+- Never read `url.pathname` raw: the installed app's home page has the path `""`, not `"/"`. Use `pathOf` from `lib/nav.ts` (bug B001).
 - Every page must work from 390px to wide screens with no sideways scroll (see `irontion-ui-rules`, Responsive).
 - The database is the source of truth. The UI never invents IDs or keeps state that the backend does not know about.
 - Any active activity can be assigned to new time blocks, a parent ("Don't do") as well as its sub-activities. Tags are not stacked: a block counts as its activity's own tags, or the nearest ancestor's when it has none. Deleting an activity archives it; history stays. The one exception is Settings → Danger zone, which permanently deletes on purpose (behind an Advanced fold-out, with counts and a confirmation). Notes are deleted for good too: one at a time from the paper (with an Undo notice), or all at once there. Deleting activities or time blocks never deletes notes. Every note has a date; only "Move to another day" (on the note's paper, from the Notes page or the Calendar) changes it, and the Notes board never shows it.
