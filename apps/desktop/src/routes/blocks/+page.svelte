@@ -34,7 +34,7 @@
 
   // Recently used activities first, so the usual choice is one click away.
   const recent = new RangeReport();
-  const suggestions = $derived(suggestActivities(recent.direct, catalog.leafIds, SUGGESTION_COUNT));
+  const suggestions = $derived(suggestActivities(recent.direct, catalog.assignableIds, SUGGESTION_COUNT));
 
   $effect(() => {
     void catalog.version;

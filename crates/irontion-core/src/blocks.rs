@@ -23,9 +23,9 @@ pub fn get_day(conn: &Connection, date: &str) -> Result<DaySlots> {
 
 /// Apply every cell edit of one user action atomically and return the updated day.
 ///
-/// New blocks must use an active leaf activity. An activity that is already on
-/// this day may be reused even if it is no longer a leaf or is archived, so that
-/// moving or resizing an existing block never fails.
+/// New blocks must use an active activity, a parent included. An activity that is already on
+/// this day may be reused even if it is archived, so that moving or resizing an existing block
+/// never fails.
 pub fn apply_day_changes(conn: &mut Connection, date: &str, changes: &[DayChange]) -> Result<DaySlots> {
     validate::date(date)?;
     for change in changes {
@@ -118,15 +118,25 @@ mod tests {
     }
 
     #[test]
-    fn new_blocks_require_a_leaf_but_existing_ones_can_move() {
+    fn a_parent_can_fill_blocks_and_so_can_its_children() {
+        let mut conn = open_in_memory().unwrap();
+        let study = activity(&mut conn, None, "Study");
+        let math = activity(&mut conn, Some(study), "Math");
+        let mut changes = paint(0..2, Some(study));
+        changes.extend(paint(2..4, Some(math)));
+        let day = apply_day_changes(&mut conn, DAY, &changes).unwrap();
+        assert_eq!(day[..4], [Some(study), Some(study), Some(math), Some(math)]);
+    }
+
+    #[test]
+    fn new_blocks_require_an_active_activity_but_existing_ones_can_move() {
         let mut conn = open_in_memory().unwrap();
         let study = activity(&mut conn, None, "Study");
         apply_day_changes(&mut conn, DAY, &paint(0..2, Some(study))).unwrap();
+        activities::archive(&conn, study).unwrap();
 
-        // Study gains a child: it is no longer a leaf.
-        activity(&mut conn, Some(study), "Math");
         let err = apply_day_changes(&mut conn, "2026-10-06", &paint(0..2, Some(study)));
-        assert!(matches!(err, Err(Error::NotLeaf)));
+        assert!(matches!(err, Err(Error::Archived)));
 
         // Moving the existing Study block on the same day still works.
         let mut moving = paint(0..2, None);

@@ -260,8 +260,7 @@ export class PreviewBackend implements Backend {
     for (const id of new Set(changes.map((c) => c.activityId))) {
       if (id === null || onDay.has(id)) continue;
       const activity = this.activity(id);
-      if (activity.archived) fail("archived");
-      if (!isAssignable(id, this.activities)) fail("notLeaf");
+      if (!isAssignable(activity.id, this.activities)) fail("archived");
     }
     changes.forEach((c) => (slots[c.slot] = c.activityId));
     return [...slots];

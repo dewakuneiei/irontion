@@ -173,7 +173,6 @@ export type ErrorKind =
   | "colorRequired"
   | "invalidDate"
   | "invalidSlot"
-  | "notLeaf"
   | "tooDeep"
   | "archived"
   | "notArchived"

@@ -49,13 +49,16 @@ export function effectiveColor(id: number, byId: Map<number, Activity>): string 
   return FALLBACK_COLOR;
 }
 
-/** Own tags plus every ancestor's tags. */
+/**
+ * The tags a block of this activity counts as: its own, or when it has none, the nearest
+ * ancestor's. A sub-activity with its own tags does not also count as its parent's (the same
+ * way a color is inherited only when it is not set).
+ */
 export function effectiveTagIds(id: number, byId: Map<number, Activity>): Set<number> {
-  const tags = new Set<number>();
   for (let a = byId.get(id); a; a = a.parentId === null ? undefined : byId.get(a.parentId)) {
-    a.tagIds.forEach((t) => tags.add(t));
+    if (a.tagIds.length > 0) return new Set(a.tagIds);
   }
-  return tags;
+  return new Set();
 }
 
 /** Ancestors from the top down, ending with the activity itself. */
@@ -67,11 +70,10 @@ export function pathOf(id: number, byId: Map<number, Activity>): Activity[] {
   return path;
 }
 
-/** Can new time blocks use this activity? Mirrors `activities::ensure_assignable`. */
+/** Can new time blocks use this activity? Any active one, a parent too. Mirrors `activities::ensure_assignable`. */
 export function isAssignable(id: number, activities: Activity[]): boolean {
   const activity = activities.find((a) => a.id === id);
-  if (!activity || activity.archived) return false;
-  return !activities.some((a) => a.parentId === id && !a.archived);
+  return !!activity && !activity.archived;
 }
 
 /** Every id in the subtree rooted at `id`, including `id`. */

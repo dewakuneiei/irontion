@@ -12,7 +12,7 @@ import type {
   TreePlanItem,
   TreeReport,
 } from "$lib/api/types";
-import { buildTree, effectiveColor, effectiveTagIds, flatten, indexById, isAssignable, pathOf } from "$lib/domain/tree";
+import { buildTree, effectiveColor, effectiveTagIds, flatten, indexById, pathOf } from "$lib/domain/tree";
 
 /**
  * Activities and tags: the user's vocabulary, shared by every page.
@@ -33,12 +33,8 @@ class CatalogStore {
   byId = $derived(indexById(this.activities));
   tagById = $derived(new Map(this.tags.map((t) => [t.id, t])));
   tree = $derived(buildTree(this.activities));
-  /** Activities that can fill blocks, in tree order. */
-  leafIds = $derived(
-    flatten(this.tree)
-      .filter((n) => n.children.length === 0)
-      .map((n) => n.activity.id),
-  );
+  /** Activities that can fill blocks (every active one, parents too), in tree order. */
+  assignableIds = $derived(flatten(this.tree).map((n) => n.activity.id));
   /** Archived activities whose parent is not archived: the roots shown in the archive list. */
   archivedRoots = $derived(
     this.activities.filter((a) => a.archived && (a.parentId === null || !this.byId.get(a.parentId)?.archived)),
@@ -65,10 +61,6 @@ class CatalogStore {
     return pathOf(id, this.byId)
       .map((a) => a.name)
       .join(" / ");
-  }
-
-  isAssignable(id: number): boolean {
-    return isAssignable(id, this.activities);
   }
 
   async createActivity(input: NewActivity): Promise<Activity> {

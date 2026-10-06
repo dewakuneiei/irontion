@@ -17,7 +17,7 @@ Use a pattern only when it removes a real problem in this codebase. Each entry s
 
 **Where:** `src/lib/api/backend.ts` defines `Backend`. `TauriBackend` (real app) and `PreviewBackend` (browser `pnpm dev`, in-memory) implement it. `getBackend()` picks one once.
 **Why:** the UI runs in a plain browser for fast design work, and later on the web with a WASM SQLite backend.
-**Rule:** add a method to the interface and *both* implementations together. `PreviewBackend` may be simpler but must respect the same invariants (leaf-only, archive cascade) so the preview never lies.
+**Rule:** add a method to the interface and *both* implementations together. `PreviewBackend` may be simpler but must respect the same invariants (archived activities refused, archive cascade) so the preview never lies.
 
 ## Command (one user action = one diff)
 

@@ -36,7 +36,7 @@ description: Clean code rules and a code-smell checklist for Irontion's TypeScri
 
 ## Errors
 
-- Core errors have a stable `kind` (e.g. `NotFound`, `NotLeaf`, `Validation`, `TooDeep`). The UI maps `kind` to a translated message (`errors.<kind>`). Never show raw SQL errors.
+- Core errors have a stable `kind` (e.g. `NotFound`, `Archived`, `Validation`, `TooDeep`). The UI maps `kind` to a translated message (`errors.<kind>`). Never show raw SQL errors.
 - Never swallow an error silently. Either recover with a clear fallback (and a comment why) or surface it.
 
 ## Comments
@@ -48,7 +48,7 @@ description: Clean code rules and a code-smell checklist for Irontion's TypeScri
 
 - [ ] **Duplicated logic**: same computation in two components? Move it to `src/lib/domain/`.
 - [ ] **Hard-coded strings or colors** in a component (see `irontion-ui-rules`).
-- [ ] **Business rule only in the UI** (e.g. leaf-only check without a Rust check).
+- [ ] **Business rule only in the UI** (e.g. an archived-activity check without a Rust check).
 - [ ] **SQL or `invoke()` outside its layer** (see `irontion-architecture`).
 - [ ] **God store**: a store that knows about unrelated features. Split it.
 - [ ] **Prop drilling** more than two levels: read the store directly instead.

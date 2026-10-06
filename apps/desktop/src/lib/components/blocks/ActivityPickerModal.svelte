@@ -35,33 +35,27 @@
       {#each rows as node (node.activity.id)}
         {@const activity = node.activity}
         <li style:padding-left="{(node.depth - 1) * 20}px">
-          {#if node.children.length > 0}
-            <!-- A group: it can't take blocks itself, but new sub-activities can be added here. -->
-            <div class="group flex h-10 items-center gap-2.5 rounded-lg px-2 text-sm text-ink-2">
-              <span class="size-2.5 shrink-0 rounded-full" style:background={catalog.colorOf(activity.id)}></span>
-              <span class="min-w-0 flex-1 truncate font-medium">{activity.name}</span>
-              {#if node.depth < MAX_DEPTH}
-                <button
-                  type="button"
-                  class="grid size-7 place-items-center rounded-md opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-surface-hover hover:text-ink [@media(hover:none)]:opacity-100"
-                  aria-label={t("activities.addSub")}
-                  title={t("activities.addSub")}
-                  onclick={() => (formTarget = { kind: "new", parentId: activity.id })}
-                >
-                  <Plus size={15} />
-                </button>
-              {/if}
-            </div>
-          {:else}
+          <div class="group flex items-center gap-1 rounded-lg hover:bg-surface-hover">
             <button
               type="button"
-              class="flex h-11 w-full items-center gap-3 rounded-lg px-2 text-left text-sm transition-colors hover:bg-surface-hover"
+              class="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-lg px-2 text-left text-sm"
               onclick={() => pick(activity.id)}
             >
               <span class="size-4 shrink-0 rounded-[5px]" style:background={catalog.colorOf(activity.id)}></span>
-              <span class="min-w-0 flex-1 truncate">{activity.name}</span>
+              <span class="min-w-0 flex-1 truncate {node.children.length > 0 ? 'font-medium' : ''}">{activity.name}</span>
             </button>
-          {/if}
+            {#if node.depth < MAX_DEPTH}
+              <button
+                type="button"
+                class="mr-1 grid size-8 shrink-0 place-items-center rounded-md text-ink-2 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-surface-2 hover:text-ink [@media(hover:none)]:opacity-100"
+                aria-label={t("activities.addSub")}
+                title={t("activities.addSub")}
+                onclick={() => (formTarget = { kind: "new", parentId: activity.id })}
+              >
+                <Plus size={15} />
+              </button>
+            {/if}
+          </div>
         </li>
       {/each}
     </ul>

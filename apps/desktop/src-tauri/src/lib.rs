@@ -135,27 +135,22 @@ mod tests {
     #[test]
     fn errors_reach_the_frontend_with_a_stable_kind() {
         let (_app, w) = app();
-        let parent = call(
+        let study = call(
             &w,
             "create_activity",
             json!({ "input": { "parentId": null, "name": "Study", "color": "#2a78d6", "tagIds": [] } }),
         )
         .unwrap();
-        let pid = parent["id"].as_i64().unwrap();
-        call(
-            &w,
-            "create_activity",
-            json!({ "input": { "parentId": pid, "name": "Math", "color": null, "tagIds": [] } }),
-        )
-        .unwrap();
+        let id = study["id"].as_i64().unwrap();
+        call(&w, "archive_activity", json!({ "id": id })).unwrap();
 
         let err = call(
             &w,
             "apply_day_changes",
-            json!({ "date": "2026-10-05", "changes": [{ "slot": 0, "activityId": pid }] }),
+            json!({ "date": "2026-10-05", "changes": [{ "slot": 0, "activityId": id }] }),
         )
         .unwrap_err();
-        assert_eq!(err["kind"], json!("notLeaf"));
+        assert_eq!(err["kind"], json!("archived"));
 
         let err = call(&w, "create_tag", json!({ "input": { "name": "", "color": null } })).unwrap_err();
         assert_eq!(err["kind"], json!("invalidName"));

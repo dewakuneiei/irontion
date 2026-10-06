@@ -187,19 +187,11 @@ pub fn block_count(conn: &Connection, id: ActivityId) -> Result<i64> {
     )?)
 }
 
-/// Fails unless new time blocks may use this activity: it must exist, be active,
-/// and have no active sub-activities.
+/// Fails unless new time blocks may use this activity: it must exist and be active. A parent
+/// can take blocks like any other activity ("Don't do" as well as "Social media" under it).
 pub fn ensure_assignable(conn: &Connection, id: ActivityId) -> Result<()> {
     if get(conn, id)?.archived {
         return Err(Error::Archived);
-    }
-    let active_children: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM activities WHERE parent_id = ?1 AND archived_at IS NULL",
-        [id],
-        |r| r.get(0),
-    )?;
-    if active_children > 0 {
-        return Err(Error::NotLeaf);
     }
     Ok(())
 }
@@ -332,16 +324,15 @@ mod tests {
     }
 
     #[test]
-    fn only_active_leaves_are_assignable() {
+    fn any_active_activity_is_assignable_parents_included() {
         let mut conn = open_in_memory().unwrap();
         let study = top(&mut conn, "Study");
         assert!(ensure_assignable(&conn, study.id).is_ok());
 
         let math = child(&mut conn, study.id, "Math");
-        assert!(matches!(ensure_assignable(&conn, study.id), Err(Error::NotLeaf)));
+        assert!(ensure_assignable(&conn, study.id).is_ok());
         assert!(ensure_assignable(&conn, math.id).is_ok());
 
-        // A parent whose children are all archived is a leaf again.
         archive(&conn, math.id).unwrap();
         assert!(ensure_assignable(&conn, study.id).is_ok());
         assert!(matches!(ensure_assignable(&conn, math.id), Err(Error::Archived)));

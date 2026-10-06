@@ -56,8 +56,6 @@
   const inheritedTags = $derived(
     parent ? [...catalog.tagsOf(parent.id)].map((id) => catalog.tagById.get(id)).filter((tag) => !!tag) : [],
   );
-  // Adding the first sub-activity turns the parent into a group that can't take new blocks.
-  const parentBecomesGroup = !editing && !!parent && catalog.isAssignable(parent.id);
 
   async function save(event: SubmitEvent) {
     event.preventDefault();
@@ -120,18 +118,13 @@
     <fieldset class="flex flex-col gap-2">
       <legend class="mb-2 text-sm font-medium">{t("activities.form.tags")}</legend>
       <TagPicker bind:tagIds onerror={(message) => (error = message)} />
-      {#if inheritedTags.length > 0}
+      {#if tagIds.length === 0 && inheritedTags.length > 0}
         <p class="text-xs text-muted">
           {t("activities.form.inheritedTags", { tags: inheritedTags.map((tag) => tag.name).join(", ") })}
         </p>
       {/if}
     </fieldset>
 
-    {#if parentBecomesGroup && parent}
-      <p class="rounded-lg bg-surface-2 px-3 py-2.5 text-[13px] leading-relaxed text-ink-2">
-        {t("activities.form.becomesGroup", { parent: parent.name })}
-      </p>
-    {/if}
     {#if error}<p class="text-sm text-danger" role="alert">{error}</p>{/if}
   </form>
 

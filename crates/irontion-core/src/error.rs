@@ -13,8 +13,6 @@ pub enum Error {
     InvalidDate,
     #[error("slot must be 0-143")]
     InvalidSlot,
-    #[error("only activities without sub-activities can fill time blocks")]
-    NotLeaf,
     #[error("activities can be nested at most {max} levels", max = crate::MAX_DEPTH)]
     TooDeep,
     #[error("activity is archived")]
@@ -48,7 +46,6 @@ impl Error {
             Error::ColorRequired => "colorRequired",
             Error::InvalidDate => "invalidDate",
             Error::InvalidSlot => "invalidSlot",
-            Error::NotLeaf => "notLeaf",
             Error::TooDeep => "tooDeep",
             Error::Archived => "archived",
             Error::NotArchived => "notArchived",

@@ -39,18 +39,23 @@ describe("tree", () => {
     expect(flatten(buildTree(activities), new Set([1])).map((n) => n.activity.id)).toEqual([1, 5]);
   });
 
-  it("inherits color and tags from ancestors", () => {
+  it("inherits the color from an ancestor", () => {
     expect(effectiveColor(2, byId)).toBe("#2a78d6");
     expect(effectiveColor(4, byId)).toBe("#eb6834");
-    expect([...effectiveTagIds(4, byId)].sort()).toEqual([10, 11]);
   });
 
-  it("only active leaves are assignable; archived children don't count", () => {
-    expect(isAssignable(1, activities)).toBe(false);
+  it("counts as its own tags, else the nearest ancestor's, never both", () => {
+    expect([...effectiveTagIds(1, byId)]).toEqual([10]);
+    expect([...effectiveTagIds(2, byId)]).toEqual([11]); // own tag B, not the parent's A
+    expect([...effectiveTagIds(4, byId)]).toEqual([11]); // none of its own: the nearest ancestor's
+    expect([...effectiveTagIds(3, byId)]).toEqual([10]);
+    expect([...effectiveTagIds(5, byId)]).toEqual([]);
+  });
+
+  it("any active activity is assignable, a parent included; archived ones are not", () => {
+    expect(isAssignable(1, activities)).toBe(true);
     expect(isAssignable(4, activities)).toBe(true);
     expect(isAssignable(3, activities)).toBe(false);
-    const withoutMath = activities.map((a) => (a.id === 2 || a.id === 4 ? { ...a, archived: true } : a));
-    expect(isAssignable(1, withoutMath)).toBe(true);
   });
 
   it("rolls totals up to every ancestor", () => {
