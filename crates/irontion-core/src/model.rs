@@ -222,3 +222,55 @@ pub struct TagUsage {
     pub activities: i64,
     pub notes: i64,
 }
+
+/// Whether reminders may be shown as system notifications (F008). The user is asked once.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum NotificationPermission {
+    /// Not asked yet. Reminders show in the window only.
+    Ask,
+    Allowed,
+    Denied,
+}
+
+pub type StickerId = i64;
+
+/// One of the user's own stickers (F007): a name and a square PNG.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Sticker {
+    pub id: StickerId,
+    pub name: String,
+    /// `data:image/png;base64,...`, ready for an `<img>`.
+    pub image: String,
+    /// How many days carry it, so deleting it can say what goes with it.
+    pub days: i64,
+    pub created_at: String,
+}
+
+/// A new sticker of the user's own. `image` is `data:image/png;base64,...`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewSticker {
+    pub name: String,
+    pub image: String,
+}
+
+/// Which sticker: a built-in preset (one of `STICKER_PRESETS`) or one of the user's own.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub enum StickerRef {
+    Preset { preset: String },
+    Custom { sticker_id: StickerId },
+}
+
+pub type DayStickerId = i64;
+
+/// A sticker put on a calendar day. A day can carry up to `MAX_DAY_STICKERS`, in order.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DaySticker {
+    pub id: DayStickerId,
+    pub date: String,
+    pub sticker: StickerRef,
+}

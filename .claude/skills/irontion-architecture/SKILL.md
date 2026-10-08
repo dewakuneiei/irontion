@@ -47,6 +47,9 @@ Pure domain helpers (no I/O, no Svelte) live in `apps/desktop/src/lib/domain/`: 
 | `time_blocks` | `date` (YYYY-MM-DD, local), `slot` 0–143, `activity_id` | One row per filled 10-minute cell. Empty cell = no row. |
 | `notes` | `id`, `text` (≤200 graphemes, without its `#tags`), `date` (NOT NULL), `color`, `pinned`, `position`, `remind_at`, `reminded_at`, `created_at`, `updated_at` | Sticky notes (F006 in `irontion_docs/features`). Only `notes::move_note` changes a date. Independent of activities and blocks: deleting those never deletes notes. |
 | `note_tags` | `note_id`, `tag_id` | Notes use the same tags as activities, max 5; `#name` creates or reuses one in the note's transaction. |
+| `settings` | `key`, `value` | Settings Rust acts on without the window. `notifications` (`allowed`/`denied`; absent = not asked) and `reminder_window` (`on`/`off`), F008. |
+| `stickers` | `id`, `name`, `image` (PNG blob, square, ≤256 px), `created_at` | The user's own stickers (F007). Built-in ones are frontend system data; only their id is stored. |
+| `day_stickers` | `id`, `date`, `preset` or `sticker_id` (exactly one), `position` | A sticker on a day, max 6 per day. Deleting an own sticker cascades here. |
 | `schema_version` via `PRAGMA user_version` | | Migrations in `crates/irontion-core/migrations/NNN_name.sql`, applied in order at startup. |
 
 Invariants (enforced in core, covered by tests):

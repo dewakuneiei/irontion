@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { echarts, type ChartOption } from "$lib/charts/echarts";
+  import { preferences } from "$lib/preferences.svelte";
 
   let {
     option,
@@ -22,8 +23,9 @@
   });
 
   // Runs after onMount, and again whenever the option changes (data, theme, language).
+  // No chart animation when the user turned animations off or the OS asks for reduced motion.
   $effect(() => {
-    chart?.setOption(option, { notMerge: true });
+    chart?.setOption(preferences.motion ? option : { ...option, animation: false }, { notMerge: true });
   });
 </script>
 

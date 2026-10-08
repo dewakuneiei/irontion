@@ -40,16 +40,16 @@
   --paper-tape: rgba(120, 170, 225, 0.5);
   --paper-shadow: 0 1px 1px rgba(11, 11, 11, 0.06), 0 10px 18px -8px rgba(11, 11, 11, 0.28);
   --cell-ring: rgba(11, 11, 11, 0.12);
-  --cell-radius: 0.75rem;
+  /* Block shapes (F003): even thickness on every shape. Outline of a block not filled yet; the ring
+     around a selected or current block (a gap, then the ring); how far the ring's box reaches out. */
+  --block-edge: 2px;
+  --block-gap: 2px;
+  --block-ring: 2px;
+  --block-bleed: 10px;
   --shadow: 0 1px 2px rgba(11, 11, 11, 0.04), 0 4px 16px rgba(11, 11, 11, 0.04);
 
   /* Latin → Inter, Thai → Noto Sans Thai (both bundled), CJK → system Noto Sans CJK. */
   --font-ui: "Inter Variable", "Noto Sans Thai Variable", "Noto Sans CJK SC", system-ui, sans-serif;
-}
-
-/* Preference: blocks as circles instead of rounded squares. */
-:root[data-cell-shape="circle"] {
-  --cell-radius: 50%;
 }
 
 /*

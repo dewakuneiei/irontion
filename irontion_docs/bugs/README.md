@@ -7,6 +7,8 @@ One file per bug that cost real time to find: what the user saw, the cause, the 
 | # | Bug | Seen in |
 | - | --- | ------- |
 | [[B001-tauri-empty-root-path]] | Settings → Back does nothing in the installed app | Packaged app only (0.2.0) |
+| [[B002-reminders-never-fired]] | A note reminder never showed anything | Ubuntu, 0.2.x |
+| [[B003-drag-to-first-place]] | Dropping a note on the first place did nothing | Notes board, 0.2.x |
 
 ## Template
 

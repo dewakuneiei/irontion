@@ -3,7 +3,7 @@
 use rusqlite::{Connection, params};
 
 use crate::model::{DataCounts, DeleteScope};
-use crate::{Error, Result, validate};
+use crate::{Result, validate};
 
 /// What `delete` would remove for this scope. Changes nothing.
 pub fn count(conn: &Connection, scope: &DeleteScope) -> Result<DataCounts> {
@@ -61,11 +61,7 @@ pub fn delete(conn: &mut Connection, scope: &DeleteScope) -> Result<DataCounts> 
 
 fn check(scope: &DeleteScope) -> Result<()> {
     if let DeleteScope::BlocksInRange { from, to } = scope {
-        validate::date(from)?;
-        validate::date(to)?;
-        if from > to {
-            return Err(Error::InvalidDate);
-        }
+        validate::date_range(from, to)?;
     }
     Ok(())
 }
@@ -77,6 +73,7 @@ fn table_count(conn: &Connection, table: &str) -> Result<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Error;
     use crate::db::open_in_memory;
     use crate::model::{ActivityId, DayChange, NewActivity, NewNote, TagInput};
     use crate::{activities, blocks, notes, tags};

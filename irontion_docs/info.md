@@ -16,7 +16,7 @@ status: in-development
 > - **Priority:** Performance first. Each platform can use a separate stack.
 > - **Storage:** Local only (no cloud database). Backup to Google Drive later.
 > - **Languages:** English, Thai, Chinese, Japanese, Korean (more later). See [[#Languages (i18n)]]
-> - **Look:** Light, Dark or follow the OS; user-chosen accent color; square or circle blocks; time fill direction with an optional water wave; date format, week start and 12/24-hour time. See [[F003]]
+> - **Look:** Light, Dark or follow the OS; user-chosen accent color; square, circle, glass or hexagon blocks; time fill direction with an optional water wave; date format, week start and 12/24-hour time. See [[F003]]
 > - **Templates:** 67 built-in activity templates in nine groups, with search and category filter. See [[F005]]
 > - **Notes, Calendar and Reminders:** a board of sticky notes on paper (9 colors, pin, drag to reorder, max 200 characters, `#tags`), each note on a day; the Calendar shows, adds and moves them; any note can have a reminder. See [[F006]], [[F007]] and [[F008]]
 > - **Your data:** Settings → Danger zone (behind an Advanced fold-out) deletes time blocks (all, or a date range), all activities or all notes (tags are kept). See [[F003]]
@@ -46,13 +46,13 @@ Related features: [[F001]] [[F002]] [[F003]] [[F004]] [[F005]] [[F006]] [[F007]]
 | Frontend UI     | **Svelte 5 + TypeScript** (SvelteKit, SPA mode) | Very light, no virtual DOM, good for a 144-cell grid |
 | Build tool      | **Vite**                         | Fast dev server, works with Tauri out of the box           |
 | Styling         | **Tailwind CSS 4** + CSS variables | Quick UI building; theme tokens switch light/dark ([[F003]]) |
-| Charts          | **Apache ECharts** (tree-shaken, canvas) | Smooth built-in animation, bar/heatmap/calendar charts, fast on large data |
+| Charts          | **Apache ECharts** (tree-shaken, canvas) | Smooth built-in animation, bar/pie/heatmap/calendar charts, fast on large data |
 | Animation       | **Svelte transitions + `svelte/motion`** | Built in, no extra library; respects "reduce motion" |
 | Layout          | Tailwind breakpoints + CSS variables | Responsive from phone width up; cell size, sidebar and sheets adapt ([[F004]]) |
 | Icons           | **Lucide** (`@lucide/svelte`)    | Clean, consistent line icons; only used icons are bundled  |
 | Fonts           | **Inter** + **Noto Sans Thai** (bundled), **Noto Sans CJK** (system) | Readable in every supported language |
 | i18n            | Small built-in module (typed keys) | No dependency; see [[#Languages (i18n)]]   |
-| OS integration  | `tauri-plugin-os`                | Read the OS language for auto-detection                    |
+| OS integration  | `tauri-plugin-os`, `notify-rust` | Read the OS language for auto-detection; system notifications for reminders ([[F008]]) |
 | Database        | **SQLite** (via `rusqlite` or `sqlx`) | One local file, no server, easy to back up            |
 | Migrations      | `sqlx migrate` or `refinery`     | Version the database schema                                |
 | Package manager | **pnpm**                         | Already installed                                          |
@@ -178,6 +178,9 @@ The app supports multiple languages from day one. All UI text comes from transla
 | `time_blocks`   | `date` (YYYY-MM-DD), `slot` (0–143), `activity_id`                       |
 | `notes`         | `id`, `text` (max 200 characters), `date` (YYYY-MM-DD, NOT NULL), `color`, `pinned`, `position` (board order), `remind_at`, `reminded_at` (UTC), `created_at`, `updated_at` (UTC). Indexes on `date` and `remind_at`. See [[F006]], [[F008]] |
 | `note_tags`     | `note_id`, `tag_id` (cascade both ways; the same tags as activities, max 5 per note) |
+| `settings`      | `key`, `value`. `notifications` (`allowed` / `denied`; absent = not asked yet) and `reminder_window` (`on` / `off`; absent = off). See [[F008]] |
+| `stickers`      | `id`, `name`, `image` (square PNG, at most 256 px and 512 KB), `created_at`. The user's own; built-in ones are stored by id only. See [[F007]] |
+| `day_stickers`  | `id`, `date`, `preset` or `sticker_id` (exactly one; cascade from `stickers`), `position`. At most 6 per day |
 
 Rules enforced in Rust (and covered by tests): assignment only to active activities (parents included), max 3 levels, archive cascades down, restore brings back parents, permanent delete only after archive. See [[F002]]. Notes: every note has a date (only `move_note` changes it), a color from the palette, a well-formed UTC reminder, trimmed text of 1 to 200 characters without its `#tags`, at most 5 tags with valid names; tags are created in the note's transaction. See [[F006]].
 

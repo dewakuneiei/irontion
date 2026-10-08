@@ -128,6 +128,144 @@ export function calendarHeatmap({ daily, range, palette: p, locale, weekStart, f
   };
 }
 
+export interface DonutSlice {
+  name: string;
+  value: number;
+  color: string;
+}
+
+/** A ring of slices. The caller writes the tooltip, so every slice can say its blocks, time and percent. */
+export function donutChart(
+  slices: DonutSlice[],
+  p: ChartPalette,
+  locale: LocaleCode,
+  tooltip: (slice: DonutSlice) => string,
+): ChartOption {
+  return {
+    textStyle: { fontFamily: chartFont(locale) },
+    animationDuration: 600,
+    animationEasing: "cubicOut",
+    tooltip: {
+      ...tooltipStyle(p),
+      trigger: "item",
+      formatter: (params: { dataIndex: number }) => tooltip(slices[params.dataIndex]),
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["64%", "92%"],
+        center: ["50%", "50%"],
+        startAngle: 90,
+        // Ring slices go clockwise from the top, in the order given.
+        clockwise: true,
+        sort: "none",
+        avoidLabelOverlap: false,
+        label: { show: false },
+        labelLine: { show: false },
+        itemStyle: { borderColor: p.surface, borderWidth: 2 },
+        emphasis: { scaleSize: 3 },
+        data: slices.map((s) => ({ name: s.name, value: s.value, itemStyle: { color: s.color } })),
+      },
+    ],
+  };
+}
+
+export interface StackSeries {
+  name: string;
+  color: string;
+  values: number[];
+}
+
+/** One column per day, split by activity. `values` are hours. */
+export function stackedColumns(
+  categories: string[],
+  series: StackSeries[],
+  p: ChartPalette,
+  locale: LocaleCode,
+  format: (hours: number) => string,
+): ChartOption {
+  return {
+    textStyle: { fontFamily: chartFont(locale) },
+    animationDuration: 600,
+    animationEasing: "cubicOut",
+    grid: { left: 0, right: 4, top: 8, bottom: 0, containLabel: true },
+    xAxis: {
+      type: "category",
+      data: categories,
+      axisLine: { lineStyle: { color: p.axis } },
+      axisTick: { show: false },
+      axisLabel: { color: p.muted, hideOverlap: true },
+    },
+    yAxis: { type: "value", splitLine: { lineStyle: { color: p.grid, width: 1 } }, axisLabel: { color: p.muted } },
+    tooltip: {
+      ...tooltipStyle(p),
+      trigger: "axis",
+      axisPointer: { type: "shadow", shadowStyle: { color: p.grid, opacity: 0.4 } },
+      formatter: (params: { seriesName: string; value: number; color: string; axisValueLabel: string }[]) => {
+        const rows = params
+          .filter((r) => r.value > 0)
+          .map(
+            (r) =>
+              `<span style="color:${r.color}">●</span> ${escapeHtml(r.seriesName)} <b style="float:right;margin-left:12px">${format(r.value)}</b>`,
+          );
+        return [`<b>${escapeHtml(params[0]?.axisValueLabel ?? "")}</b>`, ...rows].join("<br/>");
+      },
+    },
+    series: series.map((s) => ({
+      type: "bar",
+      name: s.name,
+      stack: "day",
+      barMaxWidth: 28,
+      itemStyle: { color: s.color },
+      emphasis: { focus: "series" },
+      data: s.values,
+    })),
+  };
+}
+
+export interface ColumnRow {
+  label: string;
+  value: number;
+}
+
+/** A few columns of hours in the accent color (parts of the day). */
+export function columnChart(
+  rows: ColumnRow[],
+  p: ChartPalette,
+  locale: LocaleCode,
+  format: (hours: number) => string,
+): ChartOption {
+  return {
+    textStyle: { fontFamily: chartFont(locale) },
+    animationDuration: 600,
+    animationEasing: "cubicOut",
+    grid: { left: 0, right: 4, top: 24, bottom: 0, containLabel: true },
+    xAxis: {
+      type: "category",
+      data: rows.map((r) => r.label),
+      axisLine: { lineStyle: { color: p.axis } },
+      axisTick: { show: false },
+      axisLabel: { color: p.text2, interval: 0 },
+    },
+    yAxis: { type: "value", splitLine: { lineStyle: { color: p.grid, width: 1 } }, axisLabel: { color: p.muted } },
+    tooltip: {
+      ...tooltipStyle(p),
+      trigger: "item",
+      formatter: (params: { name: string; value: number }) =>
+        `<b>${format(params.value)}</b><br/><span style="color:${p.text2}">${escapeHtml(params.name)}</span>`,
+    },
+    series: [
+      {
+        type: "bar",
+        barMaxWidth: 44,
+        itemStyle: { color: p.sequential[3] ?? p.categorical[0], borderRadius: [4, 4, 0, 0] },
+        label: { show: true, position: "top", color: p.text2, formatter: (params: { value: number }) => format(params.value) },
+        data: rows.map((r) => r.value),
+      },
+    ],
+  };
+}
+
 /** Activity and tag names are user input and end up in tooltip HTML. */
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);

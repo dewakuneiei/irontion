@@ -1,6 +1,6 @@
 [package]
 name = "irontion-core"
-version = "0.2.1"
+version = "0.4.0"
 edition = "2024"
 description = "Irontion business logic and SQLite storage, shared by every app"
 authors = ["dewakuneiei"]
@@ -9,6 +9,7 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
+base64 = "0.22.1"
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 thiserror = "2.0.21"

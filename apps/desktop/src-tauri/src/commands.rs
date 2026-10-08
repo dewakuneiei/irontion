@@ -4,14 +4,17 @@
 use std::sync::Mutex;
 
 use irontion_core::model::{
-    Activity, ActivityId, ActivityPatch, ActivityTotal, DailyTotal, DataCounts, DayChange, DaySlots, DeleteScope,
-    NewActivity, NewNote, Note, NoteDayCount, NoteEdit, NoteFilter, NoteId, NoteQuery, Tag, TagId, TagInput, TagUsage,
-    TreeNode, TreePlanItem, TreeReport,
+    Activity, ActivityId, ActivityPatch, ActivityTotal, DailyTotal, DataCounts, DayChange, DaySlots, DaySticker,
+    DayStickerId, DeleteScope, NewActivity, NewNote, NewSticker, Note, NoteDayCount, NoteEdit, NoteFilter, NoteId,
+    NoteQuery, NotificationPermission, Sticker, StickerId, StickerRef, Tag, TagId, TagInput, TagUsage, TreeNode,
+    TreePlanItem, TreeReport,
 };
 use irontion_core::Connection;
-use irontion_core::{activities, activity_tree, blocks, data, notes, summary, tags};
+use irontion_core::{activities, activity_tree, blocks, data, notes, settings, stickers, summary, tags};
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, Emitter, Manager, Runtime, State, WebviewWindow};
+
+use crate::reminders;
 
 pub struct Db(pub Mutex<Connection>);
 
@@ -196,11 +199,130 @@ pub async fn set_note_reminder(db: State<'_, Db>, id: NoteId, remind_at: Option<
 }
 
 #[tauri::command]
-pub async fn due_reminders(db: State<'_, Db>) -> CmdResult<Vec<Note>> {
-    with_db(&db, |c| notes::due_reminders(c))
+pub async fn notification_permission(db: State<'_, Db>) -> CmdResult<NotificationPermission> {
+    with_db(&db, |c| settings::notification_permission(c))
 }
 
 #[tauri::command]
-pub async fn mark_note_reminded(db: State<'_, Db>, id: NoteId) -> CmdResult<Note> {
-    with_db(&db, |c| notes::mark_reminded(c, id))
+pub async fn set_notification_permission(db: State<'_, Db>, permission: NotificationPermission) -> CmdResult<()> {
+    with_db(&db, |c| settings::set_notification_permission(c, permission))
+}
+
+/// Turns system notifications on: shows one notification now and, only if the system showed it,
+/// remembers the user's yes. Fails with the reason otherwise, so the window can leave the switch off.
+#[tauri::command]
+pub async fn enable_notifications(db: State<'_, Db>, title: String, body: String) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|_| "database lock poisoned".to_owned())?;
+    reminders::enable_with(&conn, || reminders::show_notification(&title, &body))
+}
+
+#[tauri::command]
+pub async fn reminder_window(db: State<'_, Db>) -> CmdResult<bool> {
+    with_db(&db, |c| settings::reminder_window(c))
+}
+
+#[tauri::command]
+pub async fn set_reminder_window(db: State<'_, Db>, enabled: bool) -> CmdResult<()> {
+    with_db(&db, |c| settings::set_reminder_window(c, enabled))
+}
+
+/// Opens the reminder popup with a sample, so the user can see what it looks like.
+#[tauri::command]
+pub async fn preview_reminder_alert<R: Runtime>(
+    app: AppHandle<R>,
+    texts: State<'_, reminders::NotificationTexts>,
+) -> Result<(), String> {
+    let title = texts.0.lock().map_err(|_| "lock poisoned".to_owned())?.reminder.clone();
+    reminders::show_alert_window(&app, None, false, &title).map_err(|err| err.to_string())
+}
+
+/// Closes the popup that called it.
+#[tauri::command]
+pub async fn dismiss_alert<R: Runtime>(window: WebviewWindow<R>) -> Result<(), String> {
+    window.close().map_err(|err| err.to_string())
+}
+
+/// The popup's "Open note": brings the main window forward on that note, then closes the popup.
+#[tauri::command]
+pub async fn open_note_from_alert<R: Runtime>(
+    app: AppHandle<R>,
+    window: WebviewWindow<R>,
+    id: NoteId,
+) -> Result<(), String> {
+    let main = app.get_webview_window("main").ok_or("the main window is not open")?;
+    main.show().map_err(|err| err.to_string())?;
+    main.unminimize().map_err(|err| err.to_string())?;
+    main.set_focus().map_err(|err| err.to_string())?;
+    app.emit_to("main", "open-note", id).map_err(|err| err.to_string())?;
+    window.close().map_err(|err| err.to_string())
+}
+
+/// Whether the system can show notifications: `"granted"`, or `"unavailable"` with the reason.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationStatus {
+    state: &'static str,
+    reason: Option<String>,
+}
+
+#[tauri::command]
+pub async fn notification_status() -> NotificationStatus {
+    match reminders::availability() {
+        Ok(()) => NotificationStatus {
+            state: "granted",
+            reason: None,
+        },
+        Err(reason) => NotificationStatus {
+            state: "unavailable",
+            reason: Some(reason),
+        },
+    }
+}
+
+/// Shows one notification now, so the user can check it works without waiting for a reminder.
+#[tauri::command]
+pub async fn send_test_notification(title: String, body: String) -> Result<(), String> {
+    reminders::show_notification(&title, &body)
+}
+
+/// The window tells Rust the words of the system notification in the user's language.
+#[tauri::command]
+pub async fn set_notification_texts(
+    texts: State<'_, reminders::NotificationTexts>,
+    reminder: String,
+    missed: String,
+) -> Result<(), String> {
+    let mut texts = texts.0.lock().map_err(|_| "lock poisoned".to_owned())?;
+    *texts = reminders::Texts { reminder, missed };
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn list_stickers(db: State<'_, Db>) -> CmdResult<Vec<Sticker>> {
+    with_db(&db, |c| stickers::list(c))
+}
+
+#[tauri::command]
+pub async fn create_sticker(db: State<'_, Db>, input: NewSticker) -> CmdResult<Sticker> {
+    with_db(&db, |c| stickers::create(c, input))
+}
+
+#[tauri::command]
+pub async fn delete_sticker(db: State<'_, Db>, id: StickerId) -> CmdResult<()> {
+    with_db(&db, |c| stickers::delete(c, id))
+}
+
+#[tauri::command]
+pub async fn day_stickers(db: State<'_, Db>, from: String, to: String) -> CmdResult<Vec<DaySticker>> {
+    with_db(&db, |c| stickers::on_days(c, &from, &to))
+}
+
+#[tauri::command]
+pub async fn add_day_sticker(db: State<'_, Db>, date: String, sticker: StickerRef) -> CmdResult<DaySticker> {
+    with_db(&db, |c| stickers::add_to_day(c, &date, &sticker))
+}
+
+#[tauri::command]
+pub async fn remove_day_sticker(db: State<'_, Db>, id: DayStickerId) -> CmdResult<()> {
+    with_db(&db, |c| stickers::remove_from_day(c, id))
 }

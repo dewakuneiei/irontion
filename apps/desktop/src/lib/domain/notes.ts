@@ -243,14 +243,57 @@ export function splitPinned(notes: readonly Note[]): { pinned: Note[]; others: N
   return { pinned: notes.filter((n) => n.pinned), others: notes.filter((n) => !n.pinned) };
 }
 
-/** `ids` with `id` taken out and put where `target` is (before it, or after it when `after`). */
-export function moveBefore(ids: readonly number[], id: number, target: number, after = false): number[] {
-  if (id === target) return [...ids];
-  const rest = ids.filter((x) => x !== id);
-  const at = rest.indexOf(target);
-  if (at < 0) return [...ids];
-  rest.splice(after ? at + 1 : at, 0, id);
-  return rest;
+/**
+ * `ids` with `id` taken out and put at place `index` (0 is the first): the note takes the place
+ * it was dropped on and the notes in between shift by one. Unchanged for an unknown note or place.
+ */
+export function moveTo(ids: readonly number[], id: number, index: number): number[] {
+  const from = ids.indexOf(id);
+  if (from < 0 || index < 0 || index >= ids.length) return [...ids];
+  const next = [...ids];
+  next.splice(from, 1);
+  next.splice(index, 0, id);
+  return next;
+}
+
+/** A card's box on screen, in the same units as the pointer. */
+export interface CardBox {
+  id: number;
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** How far from every card (px) a drop still counts as a drop on the board. */
+export const DROP_REACH = 120;
+
+/**
+ * The place (index in `ids`) a card dropped with the pointer at `x`, `y` takes: the place of the
+ * card nearest the pointer, so dropping on any part of a card, in a gap, or just above or beside
+ * the board all mean something. `null` means no move: the pointer is nearest the card's own place,
+ * or farther than `reach` from every card.
+ */
+export function dropIndex(
+  boxes: readonly CardBox[],
+  ids: readonly number[],
+  dragged: number,
+  x: number,
+  y: number,
+  reach = DROP_REACH,
+): number | null {
+  let nearest: CardBox | null = null;
+  let best = Infinity;
+  for (const box of boxes) {
+    const distance = Math.hypot(Math.max(box.left - x, 0, x - box.right), Math.max(box.top - y, 0, y - box.bottom));
+    if (distance < best) {
+      best = distance;
+      nearest = box;
+    }
+  }
+  if (!nearest || best > reach || nearest.id === dragged) return null;
+  const index = ids.indexOf(nearest.id);
+  return index < 0 ? null : index;
 }
 
 /** `ids` with `id` moved one place earlier (`-1`) or later (`1`); unchanged at the ends. */

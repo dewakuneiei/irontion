@@ -9,7 +9,7 @@ description: UI rules every Irontion page and component must follow - theme toke
 
 - Use the Tailwind tokens defined in `src/app.css`: `bg-bg`, `bg-surface`, `bg-surface-2`, `bg-surface-hover`, `border-line`, `text-ink`, `text-ink-2`, `text-muted`, `bg-accent`, `bg-accent-soft`, `text-accent`, `text-accent-ink`, `bg-danger`, `shadow-card`.
 - **The accent is chosen by the user** (7 presets or any color, see `preferences.svelte.ts`). Never assume it is blue: use the accent tokens, never `blue-500` or a hex. Charts get it through `chartPalette(theme.resolved, preferences.accentFor(theme.resolved))`.
-- **Block shape is a user setting** (square or circle). Block-like elements take their radius from `var(--cell-radius)`; they must stay equal width and height.
+- **Block shape is a user setting** (square, circle, glass or hexagon, `lib/domain/blockShape.ts`). Draw a block with `components/blocks/BlockShape.svelte`, never with a border-radius; the cell around it stays a full square and takes the pointer. Thickness tokens: `--block-edge`, `--block-gap`, `--block-ring`.
 - Never write a hex color or `bg-white`/`text-black` in a component. The only exceptions are user-chosen activity/tag colors, which come from data.
 - Text on an activity color uses `readableInk(color)` from `src/lib/domain/color.ts` (black or white by contrast), never a fixed color.
 - Charts take colors from `chartPalette(theme.resolved, accent)` and must rebuild their option when the theme or accent changes (make the option a `$derived` that reads `theme.resolved` and `preferences.accent`).
@@ -63,7 +63,7 @@ Every page works from 390px to wide screens with no sideways scroll. Breakpoints
 ## Layout and components
 
 - Page shell: `<PageHeader title subtitle>` then content, max width from the layout.
-- Reuse `Modal`, `Select` (dropdown), `DatePicker`, `ColorPicker`, `TagChip`, `ActivityPickerModal`, `Chart`, `EmptyState` before writing new ones. Use `Select`, not a native `<select>`, so menus match the theme.
+- Reuse `Modal`, `Select` (dropdown), `DatePicker`, `TimePicker` (a clock; never a native `<input type="time">`), `ColorPicker`, `TagChip`, `ActivityPickerModal`, `Chart`, `EmptyState` before writing new ones. Use `Select`, not a native `<select>`, so menus match the theme.
 - Dates and times for display go through `src/lib/format.svelte.ts` (it applies the user's date format and 12/24-hour choice), never a hard-coded `toLocaleDateString` or "HH:MM".
 - The theme switch lives only in Settings. Do not add it elsewhere.
 - The Blocks grid is the hero of the app: keep it calm and precise; it gets the boldest treatment, everything else stays quiet.

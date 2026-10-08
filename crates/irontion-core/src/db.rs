@@ -13,6 +13,8 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/005_notes_dated_with_templates.sql"),
     include_str!("../migrations/006_notes_without_templates.sql"),
     include_str!("../migrations/007_notes_board.sql"),
+    include_str!("../migrations/008_settings.sql"),
+    include_str!("../migrations/009_stickers.sql"),
 ];
 
 /// Open (or create) the database file, enable WAL and foreign keys, and migrate.

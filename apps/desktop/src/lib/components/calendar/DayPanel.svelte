@@ -2,20 +2,31 @@
   import Plus from "@lucide/svelte/icons/plus";
   import X from "@lucide/svelte/icons/x";
   import { fly } from "svelte/transition";
-  import type { Note } from "$lib/api/types";
+  import type { DaySticker, Note } from "$lib/api/types";
   import Button from "$lib/components/Button.svelte";
   import NoteCard from "$lib/components/notes/NoteCard.svelte";
+  import DayStickers from "$lib/components/stickers/DayStickers.svelte";
   import { formatDayLabel } from "$lib/format.svelte";
   import { t } from "$lib/i18n/index.svelte";
   import { notes } from "$lib/stores/notes.svelte";
 
-  /** One day's notes (many are allowed). Opening one, or Add note, shows the paper in their place. */
+  /**
+   * One day: its stickers, then its notes (many of each are allowed). Opening a note, or Add note,
+   * shows the paper in their place.
+   */
   let {
     date,
+    stickers,
     onopen,
     onadd,
     onclose,
-  }: { date: string; onopen: (note: Note) => void; onadd: () => void; onclose: () => void } = $props();
+  }: {
+    date: string;
+    stickers: readonly DaySticker[];
+    onopen: (note: Note) => void;
+    onadd: () => void;
+    onclose: () => void;
+  } = $props();
 
   const items = $derived(notes.on(date));
 </script>
@@ -33,6 +44,10 @@
       <X size={16} />
     </button>
   </header>
+
+  <div class="mb-4 border-b border-line pb-4">
+    <DayStickers {date} placed={stickers} />
+  </div>
 
   {#if items.length > 0}
     <!-- Room between sheets for the tape. -->

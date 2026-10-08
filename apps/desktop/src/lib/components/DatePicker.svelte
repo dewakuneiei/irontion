@@ -14,12 +14,15 @@
     onchange,
     label,
     text,
+    variant = "field",
   }: {
     value: string;
     onchange: (iso: string) => void;
     label: string;
     /** What the button says, when it should name the action ("Move to another day") instead of the date. */
     text?: string;
+    /** `field` is a bordered button; `inline` is plain text with a calendar icon, for a date row. */
+    variant?: "field" | "inline";
   } = $props();
 
   /**
@@ -69,10 +72,12 @@
   aria-haspopup="dialog"
   aria-label={label}
   title={label}
-  class="flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-3 text-sm font-medium text-ink transition-colors hover:bg-surface-hover"
+  class="flex items-center gap-2 text-sm font-medium text-ink transition-colors hover:bg-surface-hover {variant === 'field'
+    ? 'h-9 rounded-lg border border-line bg-surface px-3'
+    : 'h-8 gap-1.5 rounded-lg px-2'}"
   onclick={show}
 >
-  <CalendarDays size={16} class="text-accent" />
+  <CalendarDays size={variant === "field" ? 16 : 15} class="text-accent" />
   <span class="tabular-nums">{text ?? formatDayLabel(value)}</span>
 </button>
 

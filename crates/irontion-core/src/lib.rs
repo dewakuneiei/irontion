@@ -11,6 +11,8 @@ pub mod db;
 mod error;
 pub mod model;
 pub mod notes;
+pub mod settings;
+pub mod stickers;
 pub mod summary;
 pub mod tags;
 mod validate;
@@ -34,3 +36,15 @@ pub const MAX_NOTE_TAGS: usize = 5;
 pub const NOTE_COLORS: [&str; 9] = [
     "yellow", "orange", "red", "pink", "purple", "blue", "teal", "green", "gray",
 ];
+/// Built-in stickers, by id (F007). The frontend draws each one and names it in every language;
+/// the database stores only the id.
+pub const STICKER_PRESETS: [&str; 16] = [
+    "star", "heart", "sun", "moon", "cloud", "rain", "flower", "leaf", "fire", "check", "trophy", "coffee", "book",
+    "music", "cake", "gift",
+];
+/// Most stickers one day can carry.
+pub const MAX_DAY_STICKERS: usize = 6;
+/// Widest (and tallest: stickers are square) a user's sticker image may be, in pixels.
+pub const STICKER_MAX_PX: u32 = 256;
+/// Largest a user's sticker image may be, in bytes of PNG.
+pub const MAX_STICKER_BYTES: usize = 512 * 1024;

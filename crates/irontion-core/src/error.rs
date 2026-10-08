@@ -31,6 +31,10 @@ pub enum Error {
     InvalidNoteTag,
     #[error("a reminder must be a UTC time like 2026-10-06T08:30:00Z")]
     InvalidReminder,
+    #[error("a sticker image must be a square PNG of at most {px} pixels", px = crate::STICKER_MAX_PX)]
+    InvalidStickerImage,
+    #[error("a day can have at most {max} stickers", max = crate::MAX_DAY_STICKERS)]
+    TooManyStickers,
     #[error("database error: {0}")]
     Database(#[from] rusqlite::Error),
     #[error("could not prepare the data folder: {0}")]
@@ -55,6 +59,8 @@ impl Error {
             Error::NoteTooManyTags => "noteTooManyTags",
             Error::InvalidNoteTag => "invalidNoteTag",
             Error::InvalidReminder => "invalidReminder",
+            Error::InvalidStickerImage => "invalidStickerImage",
+            Error::TooManyStickers => "tooManyStickers",
             Error::Database(_) => "database",
             Error::Io(_) => "io",
         }

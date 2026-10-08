@@ -31,6 +31,11 @@ class NoticeStore {
     this.push(message, "info", options);
   }
 
+  /** An error message that is already translated and specific (not a backend error kind). */
+  failure(message: string, options: NoticeOptions = {}) {
+    this.push(message, "error", options);
+  }
+
   /** Show a translated message for any backend error. */
   error(err: unknown) {
     console.error(err);

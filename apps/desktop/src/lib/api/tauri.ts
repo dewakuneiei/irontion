@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { BackendError, type Backend } from "./backend";
 import type {
   Activity,
@@ -8,15 +9,22 @@ import type {
   DataCounts,
   DayChange,
   DaySlots,
+  DaySticker,
   DeleteScope,
   ErrorKind,
   NewActivity,
   NewNote,
+  NewSticker,
   Note,
   NoteDayCount,
   NoteEdit,
   NoteFilter,
   NoteQuery,
+  NotificationPermission,
+  NotificationStatus,
+  ReminderDelivery,
+  Sticker,
+  StickerRef,
   Tag,
   TagInput,
   TagUsage,
@@ -72,8 +80,28 @@ export class TauriBackend implements Backend {
   pinNote = (id: number, pinned: boolean) => this.call<Note>("pin_note", { id, pinned });
   reorderNotes = (ids: number[]) => this.call<void>("reorder_notes", { ids });
   setNoteReminder = (id: number, remindAt: string | null) => this.call<Note>("set_note_reminder", { id, remindAt });
-  dueReminders = () => this.call<Note[]>("due_reminders");
-  markNoteReminded = (id: number) => this.call<Note>("mark_note_reminded", { id });
+  watchReminders = (handler: (delivery: ReminderDelivery) => void) =>
+    listen<ReminderDelivery>("reminder-delivered", (event) => handler(event.payload));
+  notificationStatus = () => this.call<NotificationStatus>("notification_status");
+  sendTestNotification = (title: string, body: string) => this.call<void>("send_test_notification", { title, body });
+  setNotificationTexts = (texts: { reminder: string; missed: string }) => this.call<void>("set_notification_texts", texts);
+  reminderWindow = () => this.call<boolean>("reminder_window");
+  setReminderWindow = (enabled: boolean) => this.call<void>("set_reminder_window", { enabled });
+  previewReminderAlert = () => this.call<void>("preview_reminder_alert");
+  dismissAlert = () => this.call<void>("dismiss_alert");
+  openNoteFromAlert = (id: number) => this.call<void>("open_note_from_alert", { id });
+  watchOpenNote = (handler: (id: number) => void) => listen<number>("open-note", (event) => handler(event.payload));
+  enableNotifications = (title: string, body: string) => this.call<void>("enable_notifications", { title, body });
+  notificationPermission = () => this.call<NotificationPermission>("notification_permission");
+  setNotificationPermission = (permission: NotificationPermission) =>
+    this.call<void>("set_notification_permission", { permission });
+
+  listStickers = () => this.call<Sticker[]>("list_stickers");
+  createSticker = (input: NewSticker) => this.call<Sticker>("create_sticker", { input });
+  deleteSticker = (id: number) => this.call<void>("delete_sticker", { id });
+  dayStickers = (from: string, to: string) => this.call<DaySticker[]>("day_stickers", { from, to });
+  addDaySticker = (date: string, sticker: StickerRef) => this.call<DaySticker>("add_day_sticker", { date, sticker });
+  removeDaySticker = (id: number) => this.call<void>("remove_day_sticker", { id });
   noteMonthCounts = (from: string, to: string) => this.call<NoteDayCount[]>("note_month_counts", { from, to });
 
   countData = (scope: DeleteScope) => this.call<DataCounts>("count_data", { scope });

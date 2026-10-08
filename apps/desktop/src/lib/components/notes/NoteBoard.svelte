@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from "svelte";
   import type { Note } from "$lib/api/types";
-  import { columnCount, deal, moveBefore, nudge } from "$lib/domain/notes";
+  import { columnCount, deal, dropIndex, moveTo, nudge, type CardBox } from "$lib/domain/notes";
   import { t } from "$lib/i18n/index.svelte";
   import { preferences } from "$lib/preferences.svelte";
   import { notes as store } from "$lib/stores/notes.svelte";
@@ -27,7 +27,7 @@
    * One group of notes (pinned, or the rest) laid out like a board: cards are as tall as their
    * text, dealt into columns in order, so the list order reads left to right, then down. A click
    * opens a card; holding it and dragging moves it (Alt+Shift and the arrow keys do the same).
-   * When the card is dropped, the cards slide to their new places, or the card glides back.
+   * The card takes the place of the card nearest the pointer when it is dropped, so the first place is reached by dropping on the first card (or just above or beside it). The cards then slide to their new places, or the card glides back.
    */
   let { notes, reorderable, onreorder }: { notes: readonly Note[]; reorderable: boolean; onreorder: (ids: number[]) => void } = $props();
 
@@ -55,8 +55,8 @@
     y: number;
     dx: number;
     dy: number;
+    /** The card whose place the dragged one takes if dropped now. */
     over: number | null;
-    after: boolean;
   }
   let press: Press | null = null;
   let drag = $state<Drag | null>(null);
@@ -92,7 +92,7 @@
     if (!press) return;
     clearTimeout(press.timer);
     press.el.setPointerCapture?.(press.pointerId);
-    drag = { id: press.id, x: press.x, y: press.y, dx: 0, dy: 0, over: null, after: false };
+    drag = { id: press.id, x: press.x, y: press.y, dx: 0, dy: 0, over: null };
     press = null;
   }
 
@@ -101,22 +101,23 @@
     press = null;
   }
 
-  /** The card under the pointer, other than the one being dragged, and whether the pointer is in its lower half. */
-  function cardUnder(x: number, y: number, except: number): { id: number; after: boolean } | null {
-    for (const el of container?.querySelectorAll<HTMLElement>("[data-board-id]") ?? []) {
-      const id = Number(el.dataset.boardId);
+  /** Where every card is on screen right now. */
+  function boxes(): CardBox[] {
+    return [...(container?.querySelectorAll<HTMLElement>("[data-board-id]") ?? [])].map((el) => {
       const r = el.getBoundingClientRect();
-      if (id !== except && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-        return { id, after: y > r.top + r.height / 2 };
-      }
-    }
-    return null;
+      return { id: Number(el.dataset.boardId), left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    });
+  }
+
+  /** The place a card dropped here would take: the nearest card's (see `dropIndex`). */
+  function placeAt(x: number, y: number, dragged: number): number | null {
+    return dropIndex(boxes(), ids, dragged, x, y);
   }
 
   function onMove(event: PointerEvent) {
     if (drag) {
-      const hit = cardUnder(event.clientX, event.clientY, drag.id);
-      drag = { ...drag, dx: event.clientX - drag.x, dy: event.clientY - drag.y, over: hit?.id ?? null, after: hit?.after ?? false };
+      const place = placeAt(event.clientX, event.clientY, drag.id);
+      drag = { ...drag, dx: event.clientX - drag.x, dy: event.clientY - drag.y, over: place === null ? null : ids[place] };
       scrollNearEdge(event.clientY);
       return;
     }
@@ -144,14 +145,15 @@
     if (drag) void drop({ ...drag, over: null });
   }
 
-  /** Put the card where it was dropped, or let it glide back when it was not dropped on another card. */
+  /** Put the card in the place it was dropped on, or let it glide back when it was dropped nowhere. */
   async function drop(done: Drag) {
     const before = measure();
     swallowClick = true;
     setTimeout(() => (swallowClick = false), 400);
     drag = null;
     settling = done.id;
-    const next = done.over === null ? ids : moveBefore(ids, done.id, done.over, done.after);
+    const place = done.over === null ? -1 : ids.indexOf(done.over);
+    const next = place < 0 ? ids : moveTo(ids, done.id, place);
     if (next.join() !== ids.join()) {
       announcement = t("notes.board.moved", { n: next.indexOf(done.id) + 1, total: next.length });
       onreorder(next);

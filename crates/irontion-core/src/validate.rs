@@ -46,6 +46,16 @@ pub fn date(raw: &str) -> Result<()> {
     Ok(())
 }
 
+/// Two dates, `from` no later than `to` (both included by the caller).
+pub fn date_range(from: &str, to: &str) -> Result<()> {
+    date(from)?;
+    date(to)?;
+    if from > to {
+        return Err(Error::InvalidDate);
+    }
+    Ok(())
+}
+
 /// A UTC time as `YYYY-MM-DDTHH:MM:SS`, with optional milliseconds, and a trailing `Z`.
 /// Returned in one fixed shape (`...SS.fffZ`) so times compare correctly as text.
 pub fn timestamp(raw: &str) -> Result<String> {

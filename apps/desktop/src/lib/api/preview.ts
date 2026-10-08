@@ -4,6 +4,7 @@
 
 import { MAX_NOTE_LEN, MAX_NOTE_TAGS, addTagName, extractTags, isNoteColor, isValidTagName, noteLength } from "$lib/domain/notes";
 import { isAssignable, MAX_DEPTH, subtreeIds } from "$lib/domain/tree";
+import { MAX_DAY_STICKERS, PNG_DATA_URL_PREFIX, isStickerPreset, isValidStickerPng } from "$lib/domain/stickers";
 import { addDays, fromISODate, SLOTS_PER_DAY, slotAt, todayISO } from "$lib/domain/time";
 import { BackendError, type Backend } from "./backend";
 import type {
@@ -14,16 +15,23 @@ import type {
   DataCounts,
   DayChange,
   DaySlots,
+  DaySticker,
   DeleteScope,
   ErrorKind,
   NewActivity,
   NewNote,
+  NewSticker,
   Note,
   NoteColor,
   NoteDayCount,
   NoteEdit,
   NoteFilter,
   NoteQuery,
+  NotificationPermission,
+  NotificationStatus,
+  ReminderDelivery,
+  Sticker,
+  StickerRef,
   Tag,
   TagInput,
   TagUsage,
@@ -90,6 +98,11 @@ export class PreviewBackend implements Backend {
   /** The board order inside a group: smaller comes first (the core's `position` column). */
   private positions = new Map<number, number>();
   private days = new Map<string, DaySlots>();
+  private stickers: Sticker[] = [];
+  private dayStickerList: DaySticker[] = [];
+  private permission: NotificationPermission = "ask";
+  private popup = false;
+  private notificationTexts = { reminder: "Reminder", missed: "Missed reminder" };
   private nextId = 1;
 
   // ---------- Activities ----------
@@ -399,7 +412,10 @@ export class PreviewBackend implements Backend {
   async reorderNotes(ids: number[]): Promise<void> {
     const unique = [...new Set(ids)];
     if (unique.some((id) => !this.notes.some((n) => n.id === id))) fail("notFound");
-    unique.forEach((id, index) => this.positions.set(id, index));
+    // The notes trade the places they hold, like the real backend, so notes left out stay put.
+    const held = unique.map((id) => this.positions.get(id) ?? 0).sort((a, b) => a - b);
+    for (let i = 1; i < held.length; i++) held[i] = Math.max(held[i], held[i - 1] + 1);
+    unique.forEach((id, index) => this.positions.set(id, held[index]));
   }
 
   async setNoteReminder(id: number, remindAt: string | null): Promise<Note> {
@@ -407,6 +423,87 @@ export class PreviewBackend implements Backend {
     const note = this.note(id);
     Object.assign(note, { remindAt: value, remindedAt: null });
     return structuredClone(note);
+  }
+
+  /** The browser has no background thread: the preview checks while its page is open. */
+  async watchReminders(handler: (delivery: ReminderDelivery) => void): Promise<() => void> {
+    const check = async () => {
+      for (const due of await this.dueReminders()) {
+        const note = await this.markNoteReminded(due.id);
+        handler({ note, missed: false, shown: this.showBrowserNotification(note.text), error: null });
+      }
+    };
+    const timer = setInterval(() => void check(), 30_000);
+    void check();
+    return () => clearInterval(timer);
+  }
+
+  async notificationStatus(): Promise<NotificationStatus> {
+    if (typeof Notification === "undefined") return { state: "unavailable", reason: "Notifications are not supported in this browser." };
+    return Notification.permission === "denied"
+      ? { state: "unavailable", reason: "Notifications are blocked for this page." }
+      : { state: "granted", reason: null };
+  }
+
+  async sendTestNotification(title: string, body: string): Promise<void> {
+    if (typeof Notification === "undefined") throw new Error("Notifications are not supported in this browser.");
+    if ((await Notification.requestPermission()) !== "granted") throw new Error("Notifications are blocked for this page.");
+    new Notification(title, { body });
+  }
+
+  async setNotificationTexts(texts: { reminder: string; missed: string }): Promise<void> {
+    this.notificationTexts = texts;
+  }
+
+  async reminderWindow(): Promise<boolean> {
+    return this.popup;
+  }
+
+  async setReminderWindow(enabled: boolean): Promise<void> {
+    this.popup = enabled;
+  }
+
+  /** A browser popup stands in for the desktop's popup window (its sample needs no data). */
+  async previewReminderAlert(): Promise<void> {
+    if (!window.open("/alert?sample=1", "irontion-alert", "popup,width=460,height=280")) {
+      throw new Error("The browser blocked the popup window.");
+    }
+  }
+
+  async dismissAlert(): Promise<void> {
+    window.close();
+  }
+
+  async openNoteFromAlert(): Promise<void> {
+    window.opener?.focus();
+    window.close();
+  }
+
+  async watchOpenNote(): Promise<() => void> {
+    return () => {};
+  }
+
+  /** The browser asks its own permission when the test notification is shown. */
+  async enableNotifications(title: string, body: string): Promise<void> {
+    await this.sendTestNotification(title, body);
+    this.permission = "allowed";
+  }
+
+  async notificationPermission(): Promise<NotificationPermission> {
+    return this.permission;
+  }
+
+  async setNotificationPermission(permission: NotificationPermission): Promise<void> {
+    this.permission = permission;
+    // The browser has its own permission on top; ask for it when the user allows.
+    if (permission === "allowed" && typeof Notification !== "undefined") await Notification.requestPermission();
+  }
+
+  /** Like the desktop: a system notification only when the user allowed it. Says whether it showed. */
+  private showBrowserNotification(body: string): boolean {
+    if (this.permission !== "allowed" || typeof Notification === "undefined" || Notification.permission !== "granted") return false;
+    new Notification(this.notificationTexts.reminder, { body });
+    return true;
   }
 
   async dueReminders(): Promise<Note[]> {
@@ -431,6 +528,59 @@ export class PreviewBackend implements Backend {
       days.set(note.date, day);
     }
     return [...days.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // ---------- Stickers (F007) ----------
+
+  async listStickers(): Promise<Sticker[]> {
+    return structuredClone(this.stickers.map((s) => ({ ...s, days: this.daysCarrying(s.id) })));
+  }
+
+  async createSticker(input: NewSticker): Promise<Sticker> {
+    const name = checkName(input.name);
+    if (!input.image.startsWith(PNG_DATA_URL_PREFIX)) fail("invalidStickerImage");
+    let bytes: Uint8Array;
+    try {
+      bytes = Uint8Array.from(atob(input.image.slice(PNG_DATA_URL_PREFIX.length)), (c) => c.charCodeAt(0));
+    } catch {
+      fail("invalidStickerImage"); // not base64
+    }
+    if (!isValidStickerPng(bytes)) fail("invalidStickerImage");
+    const sticker: Sticker = { id: this.nextId++, name, image: input.image, days: 0, createdAt: new Date().toISOString() };
+    this.stickers.push(sticker);
+    return structuredClone(sticker);
+  }
+
+  async deleteSticker(id: number): Promise<void> {
+    if (!this.stickers.some((s) => s.id === id)) fail("notFound");
+    this.stickers = this.stickers.filter((s) => s.id !== id);
+    this.dayStickerList = this.dayStickerList.filter((d) => d.sticker.kind !== "custom" || d.sticker.stickerId !== id);
+  }
+
+  async dayStickers(from: string, to: string): Promise<DaySticker[]> {
+    checkDateRange(from, to);
+    return structuredClone(
+      this.dayStickerList.filter((d) => d.date >= from && d.date <= to).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id),
+    );
+  }
+
+  async addDaySticker(date: string, sticker: StickerRef): Promise<DaySticker> {
+    if (!isValidDate(date)) fail("invalidDate");
+    const known = sticker.kind === "preset" ? isStickerPreset(sticker.preset) : this.stickers.some((s) => s.id === sticker.stickerId);
+    if (!known) fail("notFound");
+    if (this.dayStickerList.filter((d) => d.date === date).length >= MAX_DAY_STICKERS) fail("tooManyStickers");
+    const placed: DaySticker = { id: this.nextId++, date, sticker: structuredClone(sticker) };
+    this.dayStickerList.push(placed);
+    return structuredClone(placed);
+  }
+
+  async removeDaySticker(id: number): Promise<void> {
+    if (!this.dayStickerList.some((d) => d.id === id)) fail("notFound");
+    this.dayStickerList = this.dayStickerList.filter((d) => d.id !== id);
+  }
+
+  private daysCarrying(stickerId: number): number {
+    return this.dayStickerList.filter((d) => d.sticker.kind === "custom" && d.sticker.stickerId === stickerId).length;
   }
 
   private note(id: number): Note {

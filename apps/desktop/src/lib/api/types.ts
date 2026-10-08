@@ -182,5 +182,54 @@ export type ErrorKind =
   | "noteTooManyTags"
   | "invalidNoteTag"
   | "invalidReminder"
+  | "invalidStickerImage"
+  | "tooManyStickers"
   | "database"
   | "io";
+
+/** A reminder the backend has just delivered (F008). Mirrors `reminders::Delivery` in Rust. */
+export interface ReminderDelivery {
+  note: Note;
+  /** The time passed while the app was closed or the machine asleep. */
+  missed: boolean;
+  /** The system notification was shown; the window need not show the reminder too. */
+  shown: boolean;
+  /** Why the system notification could not be shown, when it could not. */
+  error: string | null;
+}
+
+/** Whether the system can show notifications. `reason` says why not. */
+export interface NotificationStatus {
+  state: "granted" | "unavailable";
+  reason: string | null;
+}
+
+/** May reminders be shown as system notifications? `ask` until the user has chosen (F008). */
+export type NotificationPermission = "ask" | "allowed" | "denied";
+
+/** One of the user's own stickers (F007). Mirrors `model::Sticker` in Rust. */
+export interface Sticker {
+  id: number;
+  name: string;
+  /** `data:image/png;base64,...`, a square of at most 256 px. */
+  image: string;
+  /** How many days carry it. */
+  days: number;
+  createdAt: string;
+}
+
+export interface NewSticker {
+  name: string;
+  /** `data:image/png;base64,...` */
+  image: string;
+}
+
+/** A built-in preset by id, or one of the user's own stickers. */
+export type StickerRef = { kind: "preset"; preset: string } | { kind: "custom"; stickerId: number };
+
+/** A sticker on a calendar day. */
+export interface DaySticker {
+  id: number;
+  date: string;
+  sticker: StickerRef;
+}

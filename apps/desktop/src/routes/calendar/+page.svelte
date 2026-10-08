@@ -3,19 +3,21 @@
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import MousePointerClick from "@lucide/svelte/icons/mouse-pointer-click";
   import { onMount } from "svelte";
-  import type { Note, NoteDayCount } from "$lib/api/types";
+  import type { DaySticker, Note, NoteDayCount } from "$lib/api/types";
   import Button from "$lib/components/Button.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import DayPanel from "$lib/components/calendar/DayPanel.svelte";
   import MonthGrid from "$lib/components/calendar/MonthGrid.svelte";
   import NotePaper from "$lib/components/notes/NotePaper.svelte";
   import { countsByDate, stepMonth, visibleRange } from "$lib/domain/calendar";
+  import { stickersByDate } from "$lib/domain/stickers";
   import { monthGrid } from "$lib/domain/datetime";
   import { fromISODate, todayISO } from "$lib/domain/time";
   import { i18n, t } from "$lib/i18n/index.svelte";
   import { preferences } from "$lib/preferences.svelte";
   import { notes } from "$lib/stores/notes.svelte";
   import { notices } from "$lib/stores/notices.svelte";
+  import { stickers } from "$lib/stores/stickers.svelte";
 
   const now = new Date();
   /** First day of the month on show. */
@@ -24,6 +26,7 @@
   /** The paper open in the day panel: a note to edit, `null` for a new one, `undefined` for none. */
   let paper = $state<{ note: Note | null } | undefined>(undefined);
   let counts = $state<ReadonlyMap<string, NoteDayCount>>(new Map());
+  let placed = $state<ReadonlyMap<string, DaySticker[]>>(new Map());
 
   const days = $derived(monthGrid(shown.getFullYear(), shown.getMonth(), preferences.weekStart));
   const monthTitle = $derived(new Intl.DateTimeFormat(i18n.locale, { month: "long", year: "numeric" }).format(shown));
@@ -32,6 +35,7 @@
 
   onMount(() => {
     notes.ensureLoaded().catch((err) => notices.error(err));
+    stickers.ensureLoaded().catch((err) => notices.error(err));
   });
 
   // The counts come from the backend for the days on show, and again after any note changes.
@@ -44,6 +48,20 @@
       .monthCounts(from, to)
       .then((result) => {
         if (request === countRequest) counts = countsByDate(result);
+      })
+      .catch((err) => notices.error(err));
+  });
+
+  // The stickers on the days on show, again after any sticker changes.
+  let stickerRequest = 0;
+  $effect(() => {
+    void stickers.version;
+    const { from, to } = visibleRange(days);
+    const request = ++stickerRequest;
+    stickers
+      .onDays(from, to)
+      .then((result) => {
+        if (request === stickerRequest) placed = stickersByDate(result);
       })
       .catch((err) => notices.error(err));
   });
@@ -104,18 +122,18 @@
   ]}
 >
   <section class="min-w-0 rounded-2xl border border-line bg-surface p-2 shadow-card sm:p-4 {writing ? 'max-[56rem]:hidden' : ''}">
-    <MonthGrid {days} month={shown.getMonth()} {counts} {selected} label={t("calendar.gridLabel", { month: monthTitle })} onselect={selectDay} />
+    <MonthGrid {days} month={shown.getMonth()} {counts} stickers={placed} {selected} label={t("calendar.gridLabel", { month: monthTitle })} onselect={selectDay} />
   </section>
 
   <aside class="flex min-w-0 flex-col gap-4 min-[56rem]:sticky min-[56rem]:top-4 min-[56rem]:max-h-[calc(100vh-2rem)] min-[56rem]:overflow-y-auto min-[56rem]:px-2 min-[56rem]:pt-2 min-[56rem]:pb-4">
     {#if selected !== null && paper !== undefined}
       <!-- Editing is never a bottom sheet: the paper sits in the panel, or fills the page when narrow. -->
       {#key paper.note?.id ?? "new"}
-        <NotePaper note={paper.note} date={selected} onback={() => (paper = undefined)} onmoved={followMove} />
+        <NotePaper note={paper.note} date={selected} dateEditable onback={() => (paper = undefined)} onmoved={followMove} />
       {/key}
     {:else if selected !== null}
       <div class="sheet">
-        <DayPanel date={selected} onopen={(note) => (paper = { note })} onadd={() => (paper = { note: null })} onclose={closeDay} />
+        <DayPanel date={selected} stickers={placed.get(selected) ?? []} onopen={(note) => (paper = { note })} onadd={() => (paper = { note: null })} onclose={closeDay} />
       </div>
     {:else}
       <p class="flex gap-3 rounded-2xl border border-dashed border-line p-4 text-sm leading-relaxed text-ink-2 max-[56rem]:hidden">

@@ -1,4 +1,5 @@
 mod commands;
+mod reminders;
 
 use std::sync::Mutex;
 
@@ -16,6 +17,8 @@ pub fn run() {
             let path = app.path().app_data_dir()?.join(DB_FILE);
             let conn = irontion_core::db::open(&path)?;
             app.manage(commands::Db(Mutex::new(conn)));
+            app.manage(reminders::NotificationTexts(Mutex::new(reminders::Texts::default())));
+            reminders::start(app.handle().clone());
             Ok(())
         })
         .invoke_handler(handlers())
@@ -56,8 +59,23 @@ fn handlers<R: Runtime>() -> impl Fn(Invoke<R>) -> bool + Send + Sync + 'static 
         commands::pin_note,
         commands::reorder_notes,
         commands::set_note_reminder,
-        commands::due_reminders,
-        commands::mark_note_reminded,
+        commands::notification_status,
+        commands::send_test_notification,
+        commands::set_notification_texts,
+        commands::notification_permission,
+        commands::set_notification_permission,
+        commands::enable_notifications,
+        commands::reminder_window,
+        commands::set_reminder_window,
+        commands::preview_reminder_alert,
+        commands::dismiss_alert,
+        commands::open_note_from_alert,
+        commands::list_stickers,
+        commands::create_sticker,
+        commands::delete_sticker,
+        commands::day_stickers,
+        commands::add_day_sticker,
+        commands::remove_day_sticker,
     ]
 }
 
@@ -75,6 +93,7 @@ mod tests {
         let conn = irontion_core::db::open_in_memory().unwrap();
         let app = mock_builder()
             .manage(commands::Db(Mutex::new(conn)))
+            .manage(reminders::NotificationTexts(Mutex::new(reminders::Texts::default())))
             .invoke_handler(handlers())
             // The real generated context, so the app's actual permissions are exercised.
             .build(tauri::generate_context!(test = true))
@@ -498,7 +517,7 @@ mod tests {
             json!("notFound")
         );
 
-        // Reminders: set, due, shown once, cleared.
+        // Reminders: set and cleared here; delivery is the Rust scheduler's job (reminders.rs).
         let set = call(
             &w,
             "set_note_reminder",
@@ -506,16 +525,6 @@ mod tests {
         )
         .unwrap();
         assert_eq!(set["remindAt"], json!("2001-01-01T08:00:00.000Z"));
-        let due = call(&w, "due_reminders", json!({})).unwrap();
-        assert_eq!(due.as_array().unwrap().len(), 1);
-        assert_eq!(due[0]["id"], ids[1]);
-        let shown = call(&w, "mark_note_reminded", json!({ "id": ids[1] })).unwrap();
-        assert!(shown["remindedAt"].is_string());
-        assert!(call(&w, "due_reminders", json!({}))
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .is_empty());
         assert_eq!(
             call(&w, "set_note_reminder", json!({ "id": ids[1], "remindAt": "tomorrow" })).unwrap_err()["kind"],
             json!("invalidReminder")
@@ -523,4 +532,65 @@ mod tests {
         let cleared = call(&w, "set_note_reminder", json!({ "id": ids[1], "remindAt": null })).unwrap();
         assert_eq!(cleared["remindAt"], Value::Null);
     }
+    #[test]
+    fn notifications_are_asked_about_once_and_remembered_over_ipc() {
+        let (_app, w) = app();
+        assert_eq!(call(&w, "notification_permission", json!({})).unwrap(), json!("ask"));
+        call(&w, "set_notification_permission", json!({ "permission": "allowed" })).unwrap();
+        assert_eq!(call(&w, "notification_permission", json!({})).unwrap(), json!("allowed"));
+    }
+
+    #[test]
+    fn stickers_go_on_days_and_come_off_with_their_sticker_over_ipc() {
+        let (_app, w) = app();
+        // A 1x1 PNG.
+        let image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        let cat = call(&w, "create_sticker", json!({ "input": { "name": "Cat", "image": image } })).unwrap();
+        let id = cat["id"].as_i64().unwrap();
+        assert_eq!(cat["image"], json!(image));
+
+        let star = json!({ "kind": "preset", "preset": "star" });
+        let own = json!({ "kind": "custom", "stickerId": id });
+        call(&w, "add_day_sticker", json!({ "date": "2026-10-08", "sticker": star })).unwrap();
+        let placed = call(&w, "add_day_sticker", json!({ "date": "2026-10-08", "sticker": own })).unwrap();
+        assert_eq!(placed["sticker"], own);
+
+        let month = json!({ "from": "2026-10-01", "to": "2026-10-31" });
+        assert_eq!(call(&w, "day_stickers", month.clone()).unwrap().as_array().unwrap().len(), 2);
+        assert_eq!(call(&w, "list_stickers", json!({})).unwrap()[0]["days"], json!(1));
+
+        call(&w, "delete_sticker", json!({ "id": id })).unwrap();
+        let left = call(&w, "day_stickers", month).unwrap();
+        assert_eq!(left.as_array().unwrap().len(), 1);
+        assert_eq!(left[0]["sticker"], star);
+
+        let err = call(&w, "add_day_sticker", json!({ "date": "2026-10-08", "sticker": { "kind": "preset", "preset": "nope" } }))
+            .unwrap_err();
+        assert_eq!(err["kind"], json!("notFound"));
+    }
+
+    #[test]
+    fn the_reminder_popup_setting_is_off_until_turned_on_over_ipc() {
+        let (_app, w) = app();
+        assert_eq!(call(&w, "reminder_window", json!({})).unwrap(), json!(false));
+        call(&w, "set_reminder_window", json!({ "enabled": true })).unwrap();
+        assert_eq!(call(&w, "reminder_window", json!({})).unwrap(), json!(true));
+    }
+
+    #[test]
+    fn a_popup_opens_once_per_note_and_the_preview_has_its_own() {
+        let (app, _w) = app();
+        let handle = app.handle();
+        let windows = || {
+            let mut labels: Vec<String> = handle.webview_windows().into_keys().filter(|l| l.starts_with("alert")).collect();
+            labels.sort();
+            labels
+        };
+        reminders::show_alert_window(handle, Some(5), false, "Reminder").unwrap();
+        reminders::show_alert_window(handle, Some(5), false, "Reminder").unwrap();
+        reminders::show_alert_window(handle, Some(7), true, "Missed reminder").unwrap();
+        reminders::show_alert_window(handle, None, false, "Reminder").unwrap();
+        assert_eq!(windows(), ["alert-5", "alert-7", "alert-sample"]);
+    }
+
 }

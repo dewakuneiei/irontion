@@ -1,3 +1,4 @@
+import { parseBlockShape, type BlockShape } from "$lib/domain/blockShape";
 import { DEFAULT_ACCENT, accentColor, accentVars, normalizeAccent, type Theme } from "$lib/domain/accent";
 import {
   DEFAULT_DATE_FORMAT,
@@ -9,8 +10,6 @@ import {
   type WeekStart,
 } from "$lib/domain/datetime";
 
-export type CellShape = "square" | "circle";
-export const CELL_SHAPES: CellShape[] = ["square", "circle"];
 
 /** Which way the current block fills as its ten minutes pass: the direction the fill grows toward. */
 export type FillDirection = "up" | "down" | "right" | "left";
@@ -63,7 +62,8 @@ function savedDateFormat(): DateFormat {
 
 /** How the app looks and reads: block shape and fill, accent color, and date and time formats. */
 class PreferencesState {
-  cellShape = $state<CellShape>(read(SHAPE_KEY) === "circle" ? "circle" : "square");
+  /** One of `BLOCK_SHAPES`. Saved values from earlier versions ("square", "circle") still load. */
+  cellShape = $state<BlockShape>(parseBlockShape(read(SHAPE_KEY)));
   /** A preset id (see `ACCENT_PRESETS`) or a custom `#rrggbb` color. */
   accent = $state(normalizeAccent(read(ACCENT_KEY) ?? DEFAULT_ACCENT));
   dateFormat = $state<DateFormat>(savedDateFormat());
@@ -120,7 +120,7 @@ class PreferencesState {
     write(PAPER_KEY, paper);
   }
 
-  setCellShape(shape: CellShape) {
+  setCellShape(shape: BlockShape) {
     this.cellShape = shape;
     write(SHAPE_KEY, shape);
   }
@@ -143,7 +143,6 @@ class PreferencesState {
   apply(theme: Theme) {
     const root = document.documentElement;
     const vars = accentVars(this.accent, theme);
-    root.dataset.cellShape = this.cellShape;
     root.dataset.notePaper = this.notePaper;
     root.dataset.animations = this.animations ? "on" : "off";
     root.style.setProperty("--accent", vars.accent);

@@ -225,7 +225,7 @@ pub fn list(conn: &Connection, query: &NoteQuery, filter: &NoteFilter) -> Result
             args.push(Value::Text(date.clone()));
         }
         NoteQuery::Range { from, to } => {
-            check_range(from, to)?;
+            validate::date_range(from, to)?;
             clauses.push("date BETWEEN ? AND ?");
             args.extend([Value::Text(from.clone()), Value::Text(to.clone())]);
         }
@@ -273,17 +273,33 @@ pub fn pin_note(conn: &Connection, id: NoteId, pinned: bool) -> Result<Note> {
     get(conn, id)
 }
 
-/// Put these notes in this order (the user dragged them). The first gets the lowest position.
-/// Send a whole group at a time, pinned or not: the groups never mix, because pinned notes sort
-/// first whatever their positions. Unknown ids refuse the whole change; repeated ids count once.
+/// Put these notes in this order (the user dragged them). The notes trade the places they already
+/// hold: the first of `ids` takes the lowest of their positions, and so on. So a part of the board
+/// (a group, or what a search shows) can be reordered without moving the notes left out of `ids`.
+/// The groups never mix, because pinned notes sort first whatever their positions. Unknown ids
+/// refuse the whole change; repeated ids count once.
 pub fn reorder_notes(conn: &mut Connection, ids: &[NoteId]) -> Result<()> {
-    let tx = conn.transaction()?;
     let mut seen = HashSet::new();
+    let ids: Vec<NoteId> = ids.iter().copied().filter(|id| seen.insert(*id)).collect();
+    let tx = conn.transaction()?;
+    let mut held = Vec::with_capacity(ids.len());
+    for &id in &ids {
+        held.push(
+            tx.query_row("SELECT position FROM notes WHERE id = ?1", [id], |r| r.get::<_, i64>(0))
+                .map_err(|err| match err {
+                    rusqlite::Error::QueryReturnedNoRows => Error::NotFound,
+                    other => other.into(),
+                })?,
+        );
+    }
+    held.sort_unstable();
+    // Equal positions would make the order undecidable (ties fall back to the id): keep them apart.
+    for i in 1..held.len() {
+        held[i] = held[i].max(held[i - 1] + 1);
+    }
     let mut set = tx.prepare("UPDATE notes SET position = ?2 WHERE id = ?1")?;
-    for (index, &id) in ids.iter().filter(|id| seen.insert(**id)).enumerate() {
-        if set.execute(params![id, index as i64])? == 0 {
-            return Err(Error::NotFound);
-        }
+    for (&id, position) in ids.iter().zip(held) {
+        set.execute(params![id, position])?;
     }
     drop(set);
     tx.commit()?;
@@ -303,15 +319,19 @@ pub fn set_reminder(conn: &Connection, id: NoteId, remind_at: Option<&str>) -> R
     get(conn, id)
 }
 
-/// Notes whose reminder time has come and that were not shown yet, soonest first.
-pub fn due_reminders(conn: &Connection) -> Result<Vec<Note>> {
+/// Notes whose reminder time is at or before `now` and that were not delivered yet, soonest first.
+/// `now` is UTC in the stored shape (`2026-10-06T08:30:00.000Z`) and is passed in, so the caller
+/// owns the clock (and tests can use any moment). Times are instants, so the local time zone
+/// cannot move a reminder to another day.
+pub fn due_reminders_at(conn: &Connection, now: &str) -> Result<Vec<Note>> {
+    let now = validate::timestamp(now)?;
     let sql = format!(
         "SELECT {COLUMNS} FROM notes
-         WHERE remind_at IS NOT NULL AND reminded_at IS NULL AND remind_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+         WHERE remind_at IS NOT NULL AND reminded_at IS NULL AND remind_at <= ?1
          ORDER BY remind_at, id"
     );
     let mut stmt = conn.prepare(&sql)?;
-    let mut due = stmt.query_map([], from_row)?.collect::<rusqlite::Result<Vec<_>>>()?;
+    let mut due = stmt.query_map([now], from_row)?.collect::<rusqlite::Result<Vec<_>>>()?;
     let mut links = tag_ids_by_note(conn)?;
     for note in &mut due {
         note.tag_ids = links.remove(&note.id).unwrap_or_default();
@@ -319,7 +339,7 @@ pub fn due_reminders(conn: &Connection) -> Result<Vec<Note>> {
     Ok(due)
 }
 
-/// Remember that a note's reminder was shown, so it is not shown again.
+/// Remember that a note's reminder was delivered, so it is not delivered again.
 pub fn mark_reminded(conn: &Connection, id: NoteId) -> Result<Note> {
     get(conn, id)?;
     conn.execute(
@@ -332,7 +352,7 @@ pub fn mark_reminded(conn: &Connection, id: NoteId) -> Result<Note> {
 /// Per day from `from` to `to`: how many notes. Days with no notes
 /// are left out; oldest first.
 pub fn month_counts(conn: &Connection, from: &str, to: &str) -> Result<Vec<NoteDayCount>> {
-    check_range(from, to)?;
+    validate::date_range(from, to)?;
     let mut stmt = conn.prepare(
         "SELECT date, COUNT(*)
          FROM notes WHERE date BETWEEN ?1 AND ?2 GROUP BY date ORDER BY date",
@@ -414,7 +434,8 @@ fn link_tags(tx: &Transaction, id: NoteId, tag_ids: &[TagId]) -> Result<()> {
 
 const COLUMNS: &str = "id, text, date, color, pinned, remind_at, reminded_at, created_at, updated_at";
 
-fn get(conn: &Connection, id: NoteId) -> Result<Note> {
+/// One note, with its tags.
+pub fn get(conn: &Connection, id: NoteId) -> Result<Note> {
     let sql = format!("SELECT {COLUMNS} FROM notes WHERE id = ?1");
     let mut note = conn
         .query_row(&sql, [id], from_row)
@@ -473,15 +494,6 @@ fn check_color(color: &str) -> Result<()> {
 /// A custom paper color: `#` and six lowercase hex digits, the form a color input gives.
 fn is_hex_color(color: &str) -> bool {
     color.len() == 7 && color.starts_with('#') && color[1..].bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
-}
-
-fn check_range(from: &str, to: &str) -> Result<()> {
-    validate::date(from)?;
-    validate::date(to)?;
-    if from > to {
-        return Err(Error::InvalidDate);
-    }
-    Ok(())
 }
 
 /// Whitespace of any kind, line breaks included: what may come before a `#tag`.
@@ -1088,6 +1100,54 @@ mod tests {
     }
 
     #[test]
+    fn moving_a_note_to_the_first_place_persists_from_any_place() {
+        for from in 0..4 {
+            let mut conn = open_in_memory().unwrap();
+            for text in ["d", "c", "b", "a"] {
+                add(&mut conn, new(text));
+            }
+            let mut order: Vec<_> = all(&conn).iter().map(|n| n.id).collect();
+            assert_eq!(texts(&all(&conn)), ["a", "b", "c", "d"]);
+            let moved = order.remove(from);
+            order.insert(0, moved);
+            reorder_notes(&mut conn, &order).unwrap();
+            let got: Vec<_> = all(&conn).iter().map(|n| n.id).collect();
+            assert_eq!(got, order, "moving the note at place {from} to the first place");
+            assert_eq!(got[0], moved);
+        }
+    }
+
+    #[test]
+    fn reordering_some_notes_keeps_the_others_where_they_were() {
+        let mut conn = open_in_memory().unwrap();
+        for text in ["e", "d", "c", "b", "a"] {
+            add(&mut conn, new(text));
+        }
+        let [a, b, c, d, e] = ["a", "b", "c", "d", "e"].map(|t| by_text(&conn, t).id);
+        // A search shows only b, d and e (the others are hidden) and the user puts e first.
+        reorder_notes(&mut conn, &[e, b, d]).unwrap();
+        assert_eq!(
+            all(&conn).iter().map(|n| n.id).collect::<Vec<_>>(),
+            [a, e, c, b, d],
+            "the three shown notes trade the places they held; the hidden a and c stay put"
+        );
+    }
+
+    #[test]
+    fn notes_that_share_a_position_can_still_be_put_in_a_new_order() {
+        let mut conn = open_in_memory().unwrap();
+        for text in ["b", "a"] {
+            add(&mut conn, new(text));
+        }
+        let [a, b] = ["a", "b"].map(|t| by_text(&conn, t).id);
+        conn.execute("UPDATE notes SET position = 5", []).unwrap();
+        reorder_notes(&mut conn, &[b, a]).unwrap();
+        assert_eq!(all(&conn).iter().map(|n| n.id).collect::<Vec<_>>(), [b, a]);
+        reorder_notes(&mut conn, &[a, b]).unwrap();
+        assert_eq!(all(&conn).iter().map(|n| n.id).collect::<Vec<_>>(), [a, b]);
+    }
+
+    #[test]
     fn reorder_with_an_unknown_id_changes_nothing() {
         let mut conn = open_in_memory().unwrap();
         for text in ["a", "b"] {
@@ -1150,22 +1210,35 @@ mod tests {
 
     #[test]
     fn due_reminders_are_the_past_ones_not_yet_shown_soonest_first() {
+        const NOW: &str = "2026-10-07T00:00:00.000Z";
         let mut conn = open_in_memory().unwrap();
         let [late, early, future, none] = ["late", "early", "future", "none"].map(|t| add(&mut conn, new(t)));
-        set_reminder(&conn, late.id, Some("2001-01-02T00:00:00Z")).unwrap();
-        set_reminder(&conn, early.id, Some("2001-01-01T00:00:00Z")).unwrap();
+        set_reminder(&conn, late.id, Some("2026-10-06T10:00:00Z")).unwrap();
+        set_reminder(&conn, early.id, Some("2026-10-06T08:00:00Z")).unwrap();
         set_reminder(&conn, future.id, Some("2999-01-01T00:00:00Z")).unwrap();
         let _ = none;
-        assert_eq!(texts(&due_reminders(&conn).unwrap()), ["early", "late"]);
+        assert_eq!(texts(&due_reminders_at(&conn, NOW).unwrap()), ["early", "late"]);
         let shown = mark_reminded(&conn, early.id).unwrap();
         assert!(shown.reminded_at.is_some());
-        assert_eq!(texts(&due_reminders(&conn).unwrap()), ["late"], "shown once");
+        assert_eq!(texts(&due_reminders_at(&conn, NOW).unwrap()), ["late"], "delivered once");
         // Setting it again makes it due again; clearing removes it from the list.
-        set_reminder(&conn, early.id, Some("2001-01-01T00:00:00Z")).unwrap();
-        assert_eq!(texts(&due_reminders(&conn).unwrap()), ["early", "late"]);
+        set_reminder(&conn, early.id, Some("2026-10-06T08:00:00Z")).unwrap();
+        assert_eq!(texts(&due_reminders_at(&conn, NOW).unwrap()), ["early", "late"]);
         set_reminder(&conn, late.id, None).unwrap();
-        assert_eq!(texts(&due_reminders(&conn).unwrap()), ["early"]);
+        assert_eq!(texts(&due_reminders_at(&conn, NOW).unwrap()), ["early"]);
         assert!(matches!(mark_reminded(&conn, 999), Err(Error::NotFound)));
+    }
+
+    #[test]
+    fn a_reminder_is_due_before_exactly_at_and_after_its_time_on_the_injected_clock() {
+        let mut conn = open_in_memory().unwrap();
+        let note = add(&mut conn, new("x"));
+        set_reminder(&conn, note.id, Some("2026-10-06T23:00:00Z")).unwrap();
+        let due = |now: &str| due_reminders_at(&conn, now).unwrap().len();
+        assert_eq!(due("2026-10-06T22:59:59.999Z"), 0, "one millisecond early");
+        assert_eq!(due("2026-10-06T23:00:00.000Z"), 1, "exactly at the time");
+        assert_eq!(due("2026-10-07T23:00:00.000Z"), 1, "a day later is still due until delivered");
+        assert!(matches!(due_reminders_at(&conn, "soon"), Err(Error::InvalidReminder)));
     }
 
     #[test]

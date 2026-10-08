@@ -7,6 +7,7 @@
   import { t } from "$lib/i18n/index.svelte";
   import { preferences } from "$lib/preferences.svelte";
   import { catalog } from "$lib/stores/catalog.svelte";
+  import BlockShape from "./BlockShape.svelte";
 
   let {
     slots,
@@ -33,6 +34,8 @@
 
   let gesture = $state<Gesture | null>(null);
   let hovered = $state<number | null>(null);
+  /** The keyboard cursor is only drawn when the grid was reached with the keyboard. */
+  let keyboardFocus = $state(false);
   let cursor = $state(0);
   /** Where Shift+click or Shift+arrows extend from, and what was selected before that range began. */
   let anchor = 0;
@@ -181,6 +184,8 @@
   {onpointermove}
   {onpointerup}
   onpointercancel={() => (gesture = null)}
+  onfocus={(event) => (keyboardFocus = event.currentTarget.matches(":focus-visible"))}
+  onblur={() => (keyboardFocus = false)}
   onpointerleave={() => !gesture && (hovered = null)}
   oncontextmenu={(e) => e.preventDefault()}
   {onkeydown}
@@ -216,19 +221,19 @@
             title={cellLabel(slot)}
             class="cell {phase}"
             class:empty={id === null}
-            class:selected
-            class:cursor={slot === cursor}
-            style:--c={color}
+            class:marked={selected || phase === "current"}
             style:color={phase === "past" && color ? readableInk(color) : undefined}
           >
-            {#if phase === "current"}
-              <span
-                class="fill {preferences.fillDirection}"
-                class:wave={preferences.fillAnimation}
-                style:--n={time.progress}
-                style:--p="{time.progress * 100}%"
-              ></span>
-            {/if}
+            <BlockShape
+              shape={preferences.cellShape}
+              {phase}
+              {color}
+              progress={time.progress}
+              direction={preferences.fillDirection}
+              wave={preferences.fillAnimation}
+              mark={selected ? "selected" : phase === "current" ? "now" : null}
+              cursor={keyboardFocus && slot === cursor}
+            />
             {#if selected}
               <span class="label tabular-nums">{formatCellTime(slot)}</span>
             {/if}
@@ -261,186 +266,33 @@
   }
 
   /*
-    A block is its time: it fills as time passes.
-    future  = outline only
-    current = outline, filling from the bottom as its ten minutes go by (4:05 is half)
-    past    = filled
-    --c is the activity color; empty blocks use neutral colors.
+    A cell is always the full square, whatever shape it draws: pointer hit-testing, drag-select and
+    hover use the square, so dragging across cells never skips one. The shape is drawn inside by
+    BlockShape, which takes no pointer events.
   */
   .cell {
-    --line: var(--c, var(--cell-ring));
-    --solid: var(--c, var(--surface-2));
     position: relative;
     display: grid;
     place-items: center;
-    overflow: hidden;
     width: 100%;
     aspect-ratio: 1;
-    border-radius: var(--cell-radius);
     font-size: 0.8125rem;
     font-weight: 600;
     cursor: pointer;
-    transition:
-      background-color 140ms ease,
-      box-shadow 140ms ease;
   }
-  .cell.future,
-  .cell.current {
-    border: 2px solid var(--line);
-  }
-  .cell.past {
-    background: var(--solid);
-  }
-  /* The fill grows toward the chosen direction; --p is how far through the ten minutes it is. */
-  .fill {
-    position: absolute;
-    background: var(--solid);
-    transition:
-      height 400ms linear,
-      width 400ms linear;
-  }
-  .fill.up {
-    inset: auto 0 0 0;
-    height: var(--p);
-  }
-  .fill.down {
-    inset: 0 0 auto 0;
-    height: var(--p);
-  }
-  .fill.right {
-    inset: 0 auto 0 0;
-    width: var(--p);
-  }
-  .fill.left {
-    inset: 0 0 0 auto;
-    width: var(--p);
-  }
-
-  /*
-    Water wave: two thin wavy strips ride the leading edge of the fill, drifting in opposite
-    directions at different speeds. Each is a color block cut into a wave by a mask, so it
-    always matches the fill's color. The strip sits just outside the fill (the cell clips it).
-  */
-  .fill.wave {
-    --wave: 7px;
-    --period: 22px;
-    --wave-across: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 8' preserveAspectRatio='none'%3E%3Cpath d='M0 4Q10 0 20 4T40 4V8H0Z'/%3E%3C/svg%3E");
-    --wave-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 40' preserveAspectRatio='none'%3E%3Cpath d='M4 0Q0 10 4 20T4 40H0V0Z'/%3E%3C/svg%3E");
-    /* Hidden when the block has just started or is nearly full, where a wave would look odd. */
-    --show: calc(min(1, var(--n) * 30) * min(1, (1 - var(--n)) * 30));
-  }
-  .fill.wave::before,
-  .fill.wave::after {
-    content: "";
-    position: absolute;
-    background: var(--solid);
-    opacity: var(--show);
-    pointer-events: none;
-    -webkit-mask-repeat: repeat;
-    mask-repeat: repeat;
-  }
-  .fill.wave.up::before,
-  .fill.wave.up::after,
-  .fill.wave.down::before,
-  .fill.wave.down::after {
-    left: 0;
-    right: 0;
-    height: var(--wave);
-    -webkit-mask-image: var(--wave-across);
-    mask-image: var(--wave-across);
-    -webkit-mask-size: var(--period) 100%;
-    mask-size: var(--period) 100%;
-    animation: wave-x 2.4s linear infinite;
-  }
-  .fill.wave.up::before,
-  .fill.wave.up::after {
-    bottom: 100%;
-  }
-  .fill.wave.down::before,
-  .fill.wave.down::after {
-    top: 100%;
-    transform: scaleY(-1);
-  }
-  .fill.wave.right::before,
-  .fill.wave.right::after,
-  .fill.wave.left::before,
-  .fill.wave.left::after {
-    top: 0;
-    bottom: 0;
-    width: var(--wave);
-    -webkit-mask-image: var(--wave-down);
-    mask-image: var(--wave-down);
-    -webkit-mask-size: 100% var(--period);
-    mask-size: 100% var(--period);
-    animation: wave-y 2.4s linear infinite;
-  }
-  .fill.wave.right::before,
-  .fill.wave.right::after {
-    left: 100%;
-  }
-  .fill.wave.left::before,
-  .fill.wave.left::after {
-    right: 100%;
-    transform: scaleX(-1);
-  }
-  /* The second wave: fainter, slower and drifting the other way. After the direction rules so it wins. */
-  .fill.wave.up::after,
-  .fill.wave.down::after,
-  .fill.wave.right::after,
-  .fill.wave.left::after {
-    opacity: calc(var(--show) * 0.4);
-    animation-direction: reverse;
-    animation-duration: 3.6s;
-    animation-delay: -1.4s;
-  }
-  @keyframes wave-x {
-    to {
-      -webkit-mask-position: var(--period) 0;
-      mask-position: var(--period) 0;
-    }
-  }
-  @keyframes wave-y {
-    to {
-      -webkit-mask-position: 0 var(--period);
-      mask-position: 0 var(--period);
-    }
-  }
-  /* Only the current block ever has a wave. It also stops while the window is hidden. */
-  :global(:root[data-hidden]) .fill.wave::before,
-  :global(:root[data-hidden]) .fill.wave::after {
-    animation-play-state: paused;
-  }
-  /* Respect "reduce motion": no moving waves. */
-  @media (prefers-reduced-motion: reduce) {
-    .fill.wave::before,
-    .fill.wave::after {
-      display: none;
-    }
+  /* The ring around a selected or current block reaches into the gap: keep it above its neighbors. */
+  .cell.marked {
+    z-index: 1;
   }
   .label {
     position: relative;
+    font-size: 0.6875rem;
   }
   .day-grid:not(.busy) .cell.empty:hover {
-    background: var(--surface-hover);
+    --cell-bg: var(--surface-hover);
   }
   .day-grid:not(.busy) .cell:not(.empty):hover {
     filter: brightness(1.07);
-  }
-  .cell.current {
-    box-shadow:
-      0 0 0 2px var(--surface),
-      0 0 0 4px var(--accent);
-  }
-  .cell.selected {
-    z-index: 1;
-    font-size: 0.6875rem;
-    box-shadow:
-      0 0 0 2px var(--surface),
-      0 0 0 4px var(--text);
-  }
-  .day-grid:focus-visible .cell.cursor {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
   }
   .day-grid.moving .cell {
     cursor: move;

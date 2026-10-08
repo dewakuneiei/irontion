@@ -2,14 +2,12 @@
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import Bell from "@lucide/svelte/icons/bell";
   import CalendarDays from "@lucide/svelte/icons/calendar-days";
-  import Palette from "@lucide/svelte/icons/palette";
   import Pin from "@lucide/svelte/icons/pin";
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import X from "@lucide/svelte/icons/x";
   import { onDestroy, tick } from "svelte";
   import { errorKind } from "$lib/api/backend";
   import type { Note, NoteColor } from "$lib/api/types";
-  import Button from "$lib/components/Button.svelte";
   import DatePicker from "$lib/components/DatePicker.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import {
@@ -36,6 +34,7 @@
   import { catalog } from "$lib/stores/catalog.svelte";
   import { notes } from "$lib/stores/notes.svelte";
   import { notices } from "$lib/stores/notices.svelte";
+  import { reminders } from "$lib/stores/reminders.svelte";
 
   /**
    * The note editor (F006): a sheet of paper, not a dialog. The same component writes and edits
@@ -45,13 +44,16 @@
   let {
     note,
     date,
+    dateEditable = false,
     onback,
     onmoved,
   }: {
     /** The note to edit, or `null` to write a new one. */
     note: Note | null;
-    /** A new note's day: today on the Notes page, the chosen day on the Calendar. "Move to another day" changes it. */
+    /** A new note's day: today on the Notes page, the chosen day on the Calendar. */
     date: string;
+    /** The date row is a button that moves the note to another day. Only the Calendar's paper sets this. */
+    dateEditable?: boolean;
     /** Leave the paper. Called once the note is saved (or an empty new paper is dropped). */
     onback: () => void;
     /** The note now belongs to another day (Calendar). */
@@ -109,6 +111,10 @@
   );
   const options = $derived(newName ? [...suggestions, newName] : suggestions);
   const today = $derived(todayISO());
+  const dateText = $derived(noteDate === today ? t("notes.paper.todayDate", { date: formatDay(noteDate) }) : formatDayLabel(noteDate));
+  /** An icon button in the paper's header and tool row. */
+  const tool =
+    "flex h-8 min-w-8 items-center justify-center rounded-lg text-ink-2 transition-colors hover:bg-surface-hover hover:text-ink";
   const statusText = $derived(
     {
       new: t("notes.paper.unsaved"),
@@ -306,6 +312,7 @@
     const before = remindAt;
     remindAt = utc;
     panel = null;
+    if (utc !== null) reminders.askIfUndecided().catch((err) => notices.error(err));
     if (id === null) return; // applied when the note is created
     try {
       remindAt = (await notes.remind(id, utc)).remindAt;
@@ -368,45 +375,61 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div class="flex flex-col gap-3" role="group" aria-label={t("notes.paper.text")} onkeydown={onPaperKey} data-paper-editor>
   <!-- The tools are around the paper, not on it: the paper is only for the note. -->
-  <header class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-    <Button variant="ghost" size="sm" class="-ml-2" onclick={back}>
-      <ArrowLeft size={15} />
+  <header class="flex items-center justify-between gap-3">
+    <button type="button" class="{tool} -ml-2 gap-1.5 px-2 text-sm font-medium" onclick={back}>
+      <ArrowLeft size={15} aria-hidden="true" />
       {t("notes.paper.back")}
-    </Button>
-    <p
-      class="min-w-0 truncate text-xs {status === 'error' || status === 'tooLong' || status === 'empty' ? 'text-danger' : 'text-muted'}"
-      role="status"
-      data-status={status}
-    >
-      {statusText}
-    </p>
+    </button>
+    <button type="button" class="{tool} text-danger hover:text-danger" data-tool="delete" aria-label={t("notes.paper.delete")} title={t("notes.paper.delete")} onclick={remove}>
+      <Trash2 size={16} aria-hidden="true" />
+    </button>
   </header>
 
-  <div class="flex flex-wrap items-center gap-1.5" role="toolbar" aria-label={t("notes.paper.tools")}>
-    <Button size="sm" aria-haspopup="dialog" data-tool="color" onclick={() => toggle("color")}>
-      <span class="size-3.5 rounded-full" style:background={noteColorCss(color)} aria-hidden="true"></span>
-      <Palette size={14} aria-hidden="true" />
-      {t("notes.paper.color")}
-    </Button>
-    <Button size="sm" aria-pressed={pinned} data-tool="pin" class={pinned ? "border-accent! text-accent" : ""} onclick={togglePin}>
-      <Pin size={14} fill={pinned ? "currentColor" : "none"} aria-hidden="true" />
-      {pinned ? t("notes.paper.unpin") : t("notes.paper.pin")}
-    </Button>
-    <Button
-      size="sm"
+  <div class="flex flex-wrap items-center gap-x-2 gap-y-2" role="toolbar" aria-label={t("notes.paper.tools")}>
+    {#if dateEditable}
+      <DatePicker value={noteDate} label={t("notes.paper.move")} text={dateText} variant="inline" onchange={move} />
+    {:else}
+      <span class="inline-flex h-8 items-center gap-1.5 text-sm font-medium" title={t("notes.paper.dateLocked")} data-note-date={noteDate}>
+        <CalendarDays size={15} class="text-ink-2" aria-hidden="true" />
+        {dateText}
+      </span>
+    {/if}
+    <button
+      type="button"
       aria-haspopup="dialog"
       data-tool="reminder"
-      class={remindAt ? "border-accent! text-accent" : ""}
+      class="inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[13px] transition-colors hover:bg-surface-hover {remindAt
+        ? 'border-accent text-accent'
+        : 'border-line text-ink-2'}"
       onclick={() => toggle("reminder")}
     >
-      <Bell size={14} fill={remindAt ? "currentColor" : "none"} aria-hidden="true" />
+      <Bell size={13} fill={remindAt ? "currentColor" : "none"} aria-hidden="true" />
       {remindAt ? formatTimestamp(remindAt) : t("notes.paper.reminder")}
-    </Button>
-    <span class="flex-1"></span>
-    <Button size="sm" variant="ghost" class="text-danger" data-tool="delete" onclick={remove}>
-      <Trash2 size={14} />
-      {t("notes.paper.delete")}
-    </Button>
+    </button>
+    <div class="ml-auto flex items-center gap-1">
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      data-tool="color"
+      class={tool}
+      aria-label={t("notes.paper.color")}
+      title={t("notes.paper.color")}
+      onclick={() => toggle("color")}
+    >
+      <span class="size-4 rounded-full ring-1 ring-ink/15" style:background={noteColorCss(color)} aria-hidden="true"></span>
+    </button>
+    <button
+      type="button"
+      data-tool="pin"
+      class="{tool} {pinned ? 'text-accent' : ''}"
+      aria-pressed={pinned}
+      aria-label={pinned ? t("notes.paper.unpin") : t("notes.paper.pin")}
+      title={pinned ? t("notes.paper.unpin") : t("notes.paper.pin")}
+      onclick={togglePin}
+    >
+      <Pin size={16} fill={pinned ? "currentColor" : "none"} aria-hidden="true" />
+    </button>
+    </div>
   </div>
 
   {#if panel === "color"}
@@ -419,17 +442,7 @@
     </Modal>
   {/if}
 
-  <div class="flex flex-col gap-1">
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-      <span class="inline-flex items-center gap-1.5 font-medium" data-note-date={noteDate}>
-        <CalendarDays size={15} class="text-ink-2" aria-hidden="true" />
-        {noteDate === today ? t("notes.paper.todayDate", { date: formatDay(noteDate) }) : formatDayLabel(noteDate)}
-      </span>
-      <DatePicker value={noteDate} label={t("notes.paper.move")} text={t("notes.paper.move")} onchange={move} />
-    </div>
-  </div>
-
-  <!-- The paper: the note's text and its tags, nothing else. -->
+  <!-- The paper: the note's text, nothing else. -->
   <section class="paper paper-sheet paper-tape flex flex-col gap-3" style:--note={noteColorCss(color)} aria-label={t("notes.paper.text")}>
     <div class="paper-ruled -mx-5 px-5">
       <!-- svelte-ignore a11y_autofocus -->
@@ -477,27 +490,25 @@
         {/each}
       </ul>
     {/if}
-
-    {#if tags.length > 0}
-      <ul class="flex flex-wrap gap-1.5" aria-label={t("notes.paper.tags")}>
-        {#each tags as name (name)}
-          <li class="inline-flex h-7 items-center gap-1 rounded-full bg-surface/70 pr-1 pl-2.5 text-[13px] text-ink-2" data-tag={name}>
-            #{name}
-            <button
-              type="button"
-              class="grid size-5 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-ink"
-              aria-label={t("notes.paper.removeTag", { name })}
-              onclick={() => removeTag(name)}
-            >
-              <X size={12} />
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
   </section>
 
-  <div class="flex items-center justify-between gap-3">
+  <!-- One footer line, evenly spaced: the tags, how much of the note is used, and whether it is saved. -->
+  <footer class="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <ul class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5" aria-label={t("notes.paper.tags")}>
+      {#each tags as name (name)}
+        <li class="inline-flex h-7 items-center gap-1 rounded-full bg-surface-2 pr-1 pl-2.5 text-[13px] text-ink-2" data-tag={name}>
+          #{name}
+          <button
+            type="button"
+            class="grid size-5 place-items-center rounded-full text-muted hover:bg-surface-hover hover:text-ink"
+            aria-label={t("notes.paper.removeTag", { name })}
+            onclick={() => removeTag(name)}
+          >
+            <X size={12} />
+          </button>
+        </li>
+      {/each}
+    </ul>
     <span
       id="note-counter"
       class="text-xs tabular-nums {length > MAX_NOTE_LEN ? 'font-medium text-danger' : 'text-muted'}"
@@ -505,6 +516,13 @@
     >
       {t("notes.paper.counter", { n: length, max: MAX_NOTE_LEN })}
     </span>
-    {#if tagMessage}<p class="text-[13px] text-danger" role="alert">{tagMessage}</p>{/if}
-  </div>
+    <p
+      class="min-w-0 text-xs {status === 'error' || status === 'tooLong' || status === 'empty' ? 'text-danger' : 'text-muted'}"
+      role="status"
+      data-status={status}
+    >
+      {statusText}
+    </p>
+  </footer>
+  {#if tagMessage}<p class="text-[13px] text-danger" role="alert">{tagMessage}</p>{/if}
 </div>

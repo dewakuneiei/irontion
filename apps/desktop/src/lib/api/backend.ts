@@ -7,15 +7,22 @@ import type {
   DataCounts,
   DayChange,
   DaySlots,
+  DaySticker,
   DeleteScope,
   ErrorKind,
   NewActivity,
   NewNote,
+  NewSticker,
   Note,
   NoteDayCount,
   NoteEdit,
   NoteFilter,
   NoteQuery,
+  NotificationPermission,
+  NotificationStatus,
+  ReminderDelivery,
+  Sticker,
+  StickerRef,
   Tag,
   TagInput,
   TagUsage,
@@ -74,12 +81,48 @@ export interface Backend {
   reorderNotes(ids: number[]): Promise<void>;
   /** Set (UTC, ISO 8601) or clear a note's reminder (F008). */
   setNoteReminder(id: number, remindAt: string | null): Promise<Note>;
-  /** Notes whose reminder time has come and were not shown yet, soonest first. */
-  dueReminders(): Promise<Note[]>;
-  /** Remember that a reminder was shown, so it is not shown again. */
-  markNoteReminded(id: number): Promise<Note>;
+  /**
+   * Hear about reminders as they are delivered (F008). Delivery itself (system notification and
+   * recording it) is done by the backend, not by the window. Returns a function that stops listening.
+   */
+  watchReminders(handler: (delivery: ReminderDelivery) => void): Promise<() => void>;
+  /** Whether the system can show notifications right now. */
+  notificationStatus(): Promise<NotificationStatus>;
+  /** Show one system notification now. Rejects with the reason when it cannot. */
+  sendTestNotification(title: string, body: string): Promise<void>;
+  /** The words of the system notification for a reminder, in the user's language. */
+  setNotificationTexts(texts: { reminder: string; missed: string }): Promise<void>;
+  /**
+   * Turn system notifications on: shows one notification now and, only if the system showed it,
+   * remembers the yes. Rejects with the reason when it cannot (nothing is saved then).
+   */
+  enableNotifications(title: string, body: string): Promise<void>;
+  /** Has the user allowed reminders as system notifications? `ask` until they chose. */
+  notificationPermission(): Promise<NotificationPermission>;
+  setNotificationPermission(permission: NotificationPermission): Promise<void>;
+  /** Does a due reminder open a popup window of its own? Off until the user turns it on (F008). */
+  reminderWindow(): Promise<boolean>;
+  setReminderWindow(enabled: boolean): Promise<void>;
+  /** Open the reminder popup with a sample, so the user can see it. */
+  previewReminderAlert(): Promise<void>;
+  /** Close the popup this is called from. */
+  dismissAlert(): Promise<void>;
+  /** The popup's Open note: bring the main window forward on that note, and close the popup. */
+  openNoteFromAlert(id: number): Promise<void>;
+  /** Hear that a popup asked the main window to open a note. Returns a function that stops listening. */
+  watchOpenNote(handler: (id: number) => void): Promise<() => void>;
   /** Per day between two dates (both included): the note count. */
   noteMonthCounts(from: string, to: string): Promise<NoteDayCount[]>;
+
+  /** The user's own stickers, oldest first (F007). Presets are system data in the frontend. */
+  listStickers(): Promise<Sticker[]>;
+  createSticker(input: NewSticker): Promise<Sticker>;
+  /** Delete one of the user's stickers for good; it comes off every day. */
+  deleteSticker(id: number): Promise<void>;
+  /** Stickers on the days between two dates (both included), by day, in the order added. */
+  dayStickers(from: string, to: string): Promise<DaySticker[]>;
+  addDaySticker(date: string, sticker: StickerRef): Promise<DaySticker>;
+  removeDaySticker(id: number): Promise<void>;
 
   /** What `deleteData` would remove for this scope. Changes nothing. */
   countData(scope: DeleteScope): Promise<DataCounts>;

@@ -11,7 +11,9 @@ import {
   filterNotes,
   columnCount,
   deal,
-  moveBefore,
+  dropIndex,
+  moveTo,
+  type CardBox,
   nudge,
   splitPinned,
   NOTE_COLORS,
@@ -144,11 +146,74 @@ describe("the board", () => {
     expect(others.map((n) => n.text)).toEqual(["a", "c"]);
   });
 
-  it("moves a note before or after another", () => {
-    expect(moveBefore([1, 2, 3, 4], 4, 2)).toEqual([1, 4, 2, 3]);
-    expect(moveBefore([1, 2, 3, 4], 1, 3, true)).toEqual([2, 3, 1, 4]);
-    expect(moveBefore([1, 2, 3], 2, 2)).toEqual([1, 2, 3]);
-    expect(moveBefore([1, 2, 3], 2, 99)).toEqual([1, 2, 3]);
+  describe("moving a note to a place", () => {
+    const six = [1, 2, 3, 4, 5, 6];
+
+    it("takes the note's place: last, middle and first all land exactly where asked", () => {
+      expect(moveTo(six, 6, 0)).toEqual([6, 1, 2, 3, 4, 5]);
+      expect(moveTo(six, 3, 0)).toEqual([3, 1, 2, 4, 5, 6]);
+      expect(moveTo(six, 2, 0)).toEqual([2, 1, 3, 4, 5, 6]);
+      expect(moveTo(six, 1, 5)).toEqual([2, 3, 4, 5, 6, 1]);
+      expect(moveTo(six, 2, 4)).toEqual([1, 3, 4, 5, 2, 6]);
+    });
+
+    it("leaves the list alone for the same place, one note, two notes, or a place that does not exist", () => {
+      expect(moveTo(six, 1, 0)).toEqual(six);
+      expect(moveTo([7], 7, 0)).toEqual([7]);
+      expect(moveTo([7, 8], 8, 0)).toEqual([8, 7]);
+      expect(moveTo([7, 8], 7, 1)).toEqual([8, 7]);
+      expect(moveTo(six, 99, 0)).toEqual(six);
+      expect(moveTo(six, 1, -1)).toEqual(six);
+      expect(moveTo(six, 1, 6)).toEqual(six);
+    });
+
+    it("moves only the notes it was given, so a filtered list keeps its hidden notes in place", () => {
+      const board = [1, 2, 3, 4, 5];
+      const shown = [2, 4, 5]; // a search hides 1 and 3
+      expect(moveTo(shown, 5, 0)).toEqual([5, 2, 4]);
+      expect(board.filter((id) => !shown.includes(id))).toEqual([1, 3]);
+    });
+  });
+
+  describe("where a dropped note goes", () => {
+    // Two columns of cards, dealt in turn: ids 1, 3, 5 on the left and 2, 4, 6 on the right.
+    const ids = [1, 2, 3, 4, 5, 6];
+    const box = (id: number, column: number, row: number): CardBox => ({
+      id,
+      left: column * 260,
+      right: column * 260 + 240,
+      top: 100 + row * 200,
+      bottom: 100 + row * 200 + 180,
+    });
+    const boxes = [box(1, 0, 0), box(2, 1, 0), box(3, 0, 1), box(4, 1, 1), box(5, 0, 2), box(6, 1, 2)];
+    const drop = (dragged: number, x: number, y: number) => {
+      const index = dropIndex(boxes, ids, dragged, x, y);
+      return index === null ? ids : moveTo(ids, dragged, index);
+    };
+
+    it("puts a note first when it is dropped anywhere on the first card", () => {
+      expect(drop(2, 120, 120)[0]).toBe(2); // upper half
+      expect(drop(2, 120, 240)[0]).toBe(2); // lower half: the case that used to place it second
+      expect(drop(6, 120, 190)[0]).toBe(6);
+      expect(drop(3, 10, 110)[0]).toBe(3); // the corner
+    });
+
+    it("puts a note first when it is dropped above or beside the first card", () => {
+      expect(drop(4, 120, 40)[0]).toBe(4); // above the board
+      expect(drop(4, -30, 150)[0]).toBe(4); // left of the board
+    });
+
+    it("drops on the nearest card when the pointer is in a gap between cards", () => {
+      expect(drop(1, 255, 150)).toEqual(moveTo(ids, 1, 1)); // the gap between the columns, near card 2
+      expect(drop(1, 125, 292)).toEqual(moveTo(ids, 1, 2)); // the gap under card 1, nearer card 3
+    });
+
+    it("does nothing when dropped on its own place, or far from the board", () => {
+      expect(drop(3, 120, 400)).toEqual(ids);
+      expect(dropIndex(boxes, ids, 3, 900, 900)).toBeNull();
+      expect(dropIndex(boxes, ids, 3, 120, -500)).toBeNull();
+      expect(dropIndex([], ids, 3, 120, 120)).toBeNull();
+    });
   });
 
   it("nudges a note one place, and stops at the ends", () => {

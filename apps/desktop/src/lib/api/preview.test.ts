@@ -230,6 +230,11 @@ describe("preview backend: color, pin, order and reminders follow the core", () 
     expect(await order(b)).toEqual(["c", "b", "a"]);
     await b.reorderNotes([ids[0], ids[1], ids[2]]);
     expect(await order(b)).toEqual(["a", "b", "c"]);
+    // A part of the board (what a search shows) trades its own places; the rest stays put.
+    await b.reorderNotes([ids[2], ids[0]]);
+    expect(await order(b)).toEqual(["c", "b", "a"]);
+    await b.reorderNotes([ids[0], ids[2]]);
+    expect(await order(b)).toEqual(["a", "b", "c"]);
     expect(await kind(b.reorderNotes([ids[2], 999]))).toBe("notFound");
     expect(await order(b)).toEqual(["a", "b", "c"]);
   });
@@ -261,5 +266,55 @@ describe("preview backend: color, pin, order and reminders follow the core", () 
     const back = await b.restoreNote(deleted);
     expect(back).toMatchObject({ color: "teal", pinned: true, remindAt: "2999-01-01T00:00:00.000Z" });
     expect(await order(b)).toEqual(["keep", "other"]);
+  });
+});
+
+describe("preview backend: stickers", () => {
+  // A 1x1 PNG.
+  const PNG =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  const star = { kind: "preset" as const, preset: "star" };
+
+  it("refuses an image that is not a small square PNG", async () => {
+    const b = new PreviewBackend();
+    expect(await kind(b.createSticker({ name: "x", image: "data:image/jpeg;base64,AAAA" }))).toBe("invalidStickerImage");
+    expect(await kind(b.createSticker({ name: "x", image: "data:image/png;base64,R0lGODlh" }))).toBe("invalidStickerImage");
+    expect(await kind(b.createSticker({ name: " ", image: PNG }))).toBe("invalidName");
+    expect((await b.createSticker({ name: " Cat ", image: PNG })).name).toBe("Cat");
+  });
+
+  it("puts stickers on days, up to the limit, and deleting one takes it off every day", async () => {
+    const b = new PreviewBackend();
+    const cat = await b.createSticker({ name: "Cat", image: PNG });
+    const own = { kind: "custom" as const, stickerId: cat.id };
+    await b.addDaySticker("2026-10-08", own);
+    await b.addDaySticker("2026-10-20", own);
+    for (let i = 0; i < 5; i++) await b.addDaySticker("2026-10-08", star);
+    expect(await kind(b.addDaySticker("2026-10-08", star))).toBe("tooManyStickers");
+    expect(await kind(b.addDaySticker("2026-10-09", { kind: "preset", preset: "unicorn" }))).toBe("notFound");
+    expect((await b.listStickers())[0].days).toBe(2);
+
+    await b.deleteSticker(cat.id);
+    const left = await b.dayStickers("2026-10-01", "2026-10-31");
+    expect(left.map((d) => d.sticker)).toEqual(Array(5).fill(star));
+  });
+});
+
+describe("preview backend: notification permission", () => {
+  it("asks until the user chooses, then shows reminders in the window when not allowed", async () => {
+    const b = new PreviewBackend();
+    expect(await b.notificationPermission()).toBe("ask");
+    await b.setNotificationPermission("denied");
+    expect(await b.notificationPermission()).toBe("denied");
+  });
+
+  it("turning on needs a notification the system can show; if it cannot, nothing is saved", async () => {
+    const b = new PreviewBackend();
+    // No notification support here (a plain test environment), like a system that blocks them.
+    await expect(b.enableNotifications("Reminders", "Test")).rejects.toThrow();
+    expect(await b.notificationPermission()).toBe("ask");
+    await b.setNotificationPermission("denied");
+    await expect(b.enableNotifications("Reminders", "Test")).rejects.toThrow();
+    expect(await b.notificationPermission()).toBe("denied");
   });
 });

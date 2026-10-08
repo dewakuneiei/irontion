@@ -81,6 +81,15 @@ export function formatHour(hour: number, format: TimeFormat, locale: string): st
   return new Intl.DateTimeFormat(locale, { hour: "numeric", hour12: true }).format(new Date(2023, 0, 1, hour));
 }
 
+/** What the language calls the morning and the afternoon half of the day ("AM", "午前"). */
+export function dayPeriods(locale: string): { am: string; pm: string } {
+  const name = (hour: number, fallback: string) =>
+    new Intl.DateTimeFormat(locale, { hour: "numeric", hour12: true })
+      .formatToParts(new Date(2023, 0, 1, hour))
+      .find((part) => part.type === "dayPeriod")?.value ?? fallback;
+  return { am: name(1, "AM"), pm: name(13, "PM") };
+}
+
 /** The 42 days (6 weeks) shown for a month in a calendar, starting on `weekStart`. */
 export function monthGrid(year: number, month: number, weekStart: WeekStart): Date[] {
   const first = new Date(year, month, 1);

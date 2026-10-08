@@ -2,6 +2,7 @@
   import BellOff from "@lucide/svelte/icons/bell-off";
   import Button from "$lib/components/Button.svelte";
   import DatePicker from "$lib/components/DatePicker.svelte";
+  import TimePicker from "$lib/components/TimePicker.svelte";
   import {
     REMINDER_PRESETS,
     fromLocal,
@@ -56,13 +57,7 @@
   <div class="flex flex-col gap-2">
     <div class="flex flex-wrap items-center gap-2">
       <DatePicker value={day} label={t("reminders.day")} onchange={(iso) => (day = iso)} />
-      <input
-        type="time"
-        bind:value={time}
-        aria-label={t("reminders.time")}
-        data-reminder-time
-        class="h-9 rounded-lg border border-line bg-surface px-2.5 text-sm tabular-nums outline-none focus:border-accent"
-      />
+      <TimePicker value={time} label={t("reminders.time")} onchange={(next) => (time = next)} />
       <Button variant="primary" disabled={!canSet} onclick={() => moment && onset(toUtc(moment))} data-reminder-set>
         {t("reminders.set")}
       </Button>
