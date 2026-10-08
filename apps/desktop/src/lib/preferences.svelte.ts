@@ -1,3 +1,4 @@
+import { parseAlertAnimation, type AlertAnimation } from "$lib/domain/alertAnimation";
 import { parseBlockShape, type BlockShape } from "$lib/domain/blockShape";
 import { DEFAULT_ACCENT, accentColor, accentVars, normalizeAccent, type Theme } from "$lib/domain/accent";
 import {
@@ -27,6 +28,8 @@ const PAPER_KEY = "irontion.notePaper";
 const FILL_KEY = "irontion.fillDirection";
 const ANIMATIONS_KEY = "irontion.animations";
 const FILL_ANIMATION_KEY = "irontion.fillAnimation";
+const ALERT_ANIMATION_KEY = "irontion.alertAnimation";
+const ALERT_STYLE_KEY = "irontion.alertAnimationStyle";
 const DATE_FORMAT_KEY = "irontion.dateFormat";
 const WEEK_START_KEY = "irontion.weekStart";
 const TIME_FORMAT_KEY = "irontion.timeFormat";
@@ -77,6 +80,12 @@ class PreferencesState {
   /** A gentle water wave on the surface of the filling block. */
   fillAnimation = $state(read(FILL_ANIMATION_KEY) !== "off");
 
+  /** The reminder popup moves in and out (F008). */
+  alertAnimation = $state(read(ALERT_ANIMATION_KEY) !== "off");
+
+  /** How it moves: one of `ALERT_ANIMATIONS`. */
+  alertAnimationStyle = $state<AlertAnimation>(parseAlertAnimation(read(ALERT_STYLE_KEY)));
+
   /** Motion across the app. Off stops every transition and animation (see `app.css`). */
   animations = $state(read(ANIMATIONS_KEY) !== "off");
 
@@ -88,6 +97,16 @@ class PreferencesState {
   setAnimations(on: boolean) {
     this.animations = on;
     write(ANIMATIONS_KEY, on ? "on" : "off");
+  }
+
+  setAlertAnimation(on: boolean) {
+    this.alertAnimation = on;
+    write(ALERT_ANIMATION_KEY, on ? "on" : "off");
+  }
+
+  setAlertAnimationStyle(style: AlertAnimation) {
+    this.alertAnimationStyle = style;
+    write(ALERT_STYLE_KEY, style);
   }
 
   setFillAnimation(on: boolean) {

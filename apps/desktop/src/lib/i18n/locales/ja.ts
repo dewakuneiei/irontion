@@ -579,6 +579,16 @@ export default {
       allTitle: "アニメーションを使う",
       waveTitle: "波のアニメーション",
       waveHint: "塗りつぶし中のブロックの水面がゆるやかに波打ちます。",
+      alertTitle: "リマインダーポップアップのアニメーション",
+      alertStyle: "スタイル",
+      previewAlert: "プレビュー",
+      alertStyles: {
+        bounce: "バウンス",
+        drop: "ドロップ",
+        slide: "スライド",
+        pop: "ポップ",
+        fade: "フェード",
+      },
     },
     dateTime: {
       title: "日付と時刻",

@@ -579,6 +579,16 @@ export default {
       allTitle: "เปิดใช้แอนิเมชัน",
       waveTitle: "แอนิเมชันคลื่นน้ำ",
       waveHint: "คลื่นเบา ๆ เคลื่อนไปตามผิวของบล็อกที่กำลังเติม",
+      alertTitle: "แอนิเมชันหน้าต่างเตือน",
+      alertStyle: "รูปแบบ",
+      previewAlert: "ดูตัวอย่าง",
+      alertStyles: {
+        bounce: "เด้ง",
+        drop: "ตกลงมา",
+        slide: "เลื่อน",
+        pop: "ป๊อป",
+        fade: "จางเข้า",
+      },
     },
     dateTime: {
       title: "วันที่และเวลา",

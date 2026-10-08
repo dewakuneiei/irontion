@@ -25,8 +25,9 @@ const FIRST_CHECK_DELAY: Duration = Duration::from_secs(3);
 /// A reminder delivered later than this after its time is worded as missed.
 const ON_TIME_GRACE_SECS: i64 = 120;
 const EVENT: &str = "reminder-delivered";
-/// What the popup window is, in points. Tall enough for a 200-character note.
-const ALERT_SIZE: (f64, f64) = (460.0, 280.0);
+/// The popup window, in points: the card (about 460 x 280, tall enough for a 200-character note)
+/// plus a transparent margin for its shadow and for a bounce that overshoots.
+const ALERT_SIZE: (f64, f64) = (520.0, 340.0);
 /// The popup window's label for a note (or for the preview, which has no note).
 const SAMPLE_LABEL: &str = "alert-sample";
 
@@ -139,7 +140,7 @@ pub fn availability() -> Result<(), String> {
 
 /// Opens the reminder popup: a small borderless window on the `/alert` page, in front of other
 /// windows. `note` is the note it announces; `None` opens a sample, to preview the window. A popup
-/// that is already open is brought forward instead of opened twice.
+/// that is already open is brought forward instead of opened twice (a preview starts over).
 pub fn show_alert_window<R: Runtime>(
     app: &AppHandle<R>,
     note: Option<NoteId>,
@@ -148,8 +149,12 @@ pub fn show_alert_window<R: Runtime>(
 ) -> tauri::Result<()> {
     let label = note.map_or_else(|| SAMPLE_LABEL.to_owned(), |id| format!("alert-{id}"));
     if let Some(open) = app.get_webview_window(&label) {
-        open.show()?;
-        return open.set_focus();
+        if note.is_some() {
+            open.show()?;
+            return open.set_focus();
+        }
+        // The preview is there to be watched: open again from the start, so the animation plays.
+        open.destroy()?;
     }
     let route = match note {
         Some(id) => format!("alert?note={id}&missed={}", u8::from(missed)),
@@ -161,6 +166,8 @@ pub fn show_alert_window<R: Runtime>(
         .resizable(false)
         .maximizable(false)
         .decorations(false)
+        .transparent(true)
+        .shadow(false)
         .always_on_top(true)
         .center()
         .focused(true)

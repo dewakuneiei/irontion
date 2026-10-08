@@ -1,6 +1,6 @@
 {
   "name": "irontion-desktop",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Irontion desktop app (Linux, Windows, macOS) built with Tauri 2 + Svelte 5",
   "type": "module",
   "scripts": {

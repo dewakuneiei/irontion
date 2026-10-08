@@ -579,6 +579,16 @@ export default {
       allTitle: "애니메이션 사용",
       waveTitle: "물결 애니메이션",
       waveHint: "채워지는 블록의 수면이 부드럽게 일렁여요.",
+      alertTitle: "리마인더 팝업 애니메이션",
+      alertStyle: "스타일",
+      previewAlert: "미리 보기",
+      alertStyles: {
+        bounce: "바운스",
+        drop: "떨어지기",
+        slide: "슬라이드",
+        pop: "팝",
+        fade: "페이드",
+      },
     },
     dateTime: {
       title: "날짜와 시간",

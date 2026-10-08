@@ -579,6 +579,16 @@ export default {
       allTitle: "启用动画",
       waveTitle: "水波动画",
       waveHint: "正在填充的时间块表面会有轻柔的波浪。",
+      alertTitle: "提醒弹窗动画",
+      alertStyle: "样式",
+      previewAlert: "预览",
+      alertStyles: {
+        bounce: "弹跳",
+        drop: "落下",
+        slide: "滑入",
+        pop: "弹出",
+        fade: "淡入",
+      },
     },
     dateTime: {
       title: "日期和时间",

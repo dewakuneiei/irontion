@@ -578,6 +578,16 @@ export default {
       allTitle: "Play animations",
       waveTitle: "Water wave animation",
       waveHint: "A gentle wave moves along the surface of the filling block.",
+      alertTitle: "Reminder popup animation",
+      alertStyle: "Style",
+      previewAlert: "Preview",
+      alertStyles: {
+        bounce: "Bounce",
+        drop: "Drop",
+        slide: "Slide",
+        pop: "Pop",
+        fade: "Fade",
+      },
     },
     dateTime: {
       title: "Date and time",
